@@ -155,13 +155,13 @@ export default function App() {
           <div className="w-full lg:max-w-xl bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col gap-3.5">
             <div className="flex justify-between items-end">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Ritmo del Equipo (C8)</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Ritmo del Equipo</span>
                 <span className="text-2xl font-black text-white">
                   ${ritmoDiarioGlobalActualCelda.toLocaleString('es-AR')} <span className="text-xs font-normal text-slate-400">/ día</span>
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block mb-1">Meta Obligatoria (J2)</span>
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block mb-1">Meta Obligatoria</span>
                 <span className="text-xl font-bold text-slate-300">
                   ${ritmoDiarioGlobalRequerido.toLocaleString('es-AR')}
                 </span>

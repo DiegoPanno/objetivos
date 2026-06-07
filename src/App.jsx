@@ -222,11 +222,11 @@ export default function App() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800/60 text-center sm:text-left">
             <div>
-              <span className="text-xs text-slate-400 block">Llevamos Facturado (E8)</span>
+              <span className="text-xs text-slate-400 block">Llevamos Facturado</span>
               <span className="text-lg sm:text-xl font-bold text-slate-100">${totalAcumulado.toLocaleString('es-AR')}</span>
             </div>
             <div>
-              <span className="text-xs text-slate-400 block">Meta Final Junio (I2)</span>
+              <span className="text-xs text-slate-400 block">Meta Final Junio</span>
               <span className="text-lg sm:text-xl font-bold text-slate-400">${totalMeta.toLocaleString('es-AR')}</span>
             </div>
             <div className="col-span-2 sm:col-span-1 bg-slate-950/40 p-2 rounded-xl border border-slate-800/40">

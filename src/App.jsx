@@ -13,7 +13,6 @@ export default function App() {
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
 
-  // Función para traer los datos en vivo desde Google Drive
   const traerDatosDeGoogle = () => {
     setSincronizando(true);
     fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?output=csv")
@@ -51,7 +50,6 @@ export default function App() {
         setCargando(false);
         setSincronizando(false);
         
-        // Seteamos la estampa de tiempo actual argentina (Mar del Plata)
         const ahora = new Date();
         const horaFormateada = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const fechaFormateada = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -65,7 +63,6 @@ export default function App() {
       });
   };
 
-  // Traer datos de forma automática al abrir la pantalla
   useEffect(() => {
     traerDatosDeGoogle();
   }, []);
@@ -132,21 +129,18 @@ export default function App() {
               </p>
             </div>
             
-            {/* Control Auxiliar de Sincronización Manual */}
-            <div className="flex flex-col gap-1.5 bg-slate-900/40 border border-slate-800/60 p-3 rounded-2xl self-start sm:self-auto">
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={traerDatosDeGoogle}
-                  disabled={sincronizando}
-                  className={`p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition active:scale-95 border border-slate-700/50 flex items-center justify-center ${sincronizando ? 'animate-spin cursor-not-allowed' : ''}`}
-                  title="Sincronizar planillas ahora"
-                >
-                  🔄
-                </button>
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block tracking-wider">Último refresco</span>
-                  <span className="text-xs font-semibold text-slate-300">{ultimaActualizacion}</span>
-                </div>
+            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-800/60 p-3 rounded-2xl self-start sm:self-auto">
+              <button
+                onClick={traerDatosDeGoogle}
+                disabled={sincronizando}
+                className={`p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition active:scale-95 border border-slate-700/50 flex items-center justify-center ${sincronizando ? 'animate-spin cursor-not-allowed' : ''}`}
+                title="Sincronizar planillas ahora"
+              >
+                🔄
+              </button>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block tracking-wider">Último refresco</span>
+                <span className="text-xs font-semibold text-slate-300">{ultimaActualizacion}</span>
               </div>
             </div>
           </div>
@@ -155,20 +149,19 @@ export default function App() {
           <div className="w-full lg:max-w-xl bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col gap-3.5">
             <div className="flex justify-between items-end">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Ritmo del Equipo</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Ritmo de Carrera Hoy</span>
                 <span className="text-2xl font-black text-white">
                   ${ritmoDiarioGlobalActualCelda.toLocaleString('es-AR')} <span className="text-xs font-normal text-slate-400">/ día</span>
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block mb-1">Meta Obligatoria</span>
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block mb-1">Meta Requerida</span>
                 <span className="text-xl font-bold text-slate-300">
                   ${ritmoDiarioGlobalRequerido.toLocaleString('es-AR')}
                 </span>
               </div>
             </div>
 
-            {/* Barra de Progreso de Carrera */}
             <div className="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
               <div 
                 className={`h-full rounded-full transition-all duration-1000 shadow-lg ${
@@ -180,7 +173,6 @@ export default function App() {
               ></div>
             </div>
 
-            {/* Texto de Aliento Puro de Venta */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-1.5 border-t border-slate-800/60 pt-2">
               <span className={`font-black uppercase tracking-wide flex items-center gap-1 ${objetivoDiarioCumplido ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {objetivoDiarioCumplido && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>}
@@ -244,22 +236,25 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {canales.map((c) => {
+            {canales.map((c, idx) => {
               const acum = limpiarNumero(c.acumulado);
               const metaCanal = limpiarNumero(c.meta);
               const diarioActual = limpiarNumero(c.actualdiario);
               const diarioReq = limpiarNumero(c.requeridodiario);
+              
+              // Nuevas métricas extraídas dinámicamente de las columnas K y L
+              const cantPedidos = limpiarNumero(c.pedidos || Object.values(c)[10]);
+              const ticketProm = limpiarNumero(c.ticket_promedio || Object.values(c)[11]);
 
               const cumplimientoCanal = metaCanal > 0 ? ((acum / metaCanal) * 100).toFixed(1) : 0;
               const enRitmo = diarioActual >= diarioReq;
               const brechaDiaria = diarioReq - diarioActual;
 
-              // Parche nativo visual para "VENTA TELEFÓNICA" a un solo renglón
               const nombreCanalAMostrar = c.canal === "VENTA TELEFÓNICA" ? "VTA TELEFÓNICA" : c.canal;
 
               return (
                 <div 
-                  key={c.id || c.canal} 
+                  key={c.id || idx} 
                   className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl hover:border-slate-700 transition duration-300 group"
                 >
                   <div>
@@ -275,7 +270,7 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="mb-5 bg-slate-950 p-3 rounded-xl border border-slate-850">
+                    <div className="mb-4 bg-slate-950 p-3 rounded-xl border border-slate-850">
                       <div className="flex justify-between text-xs text-slate-400 mb-1.5">
                         <span>Progreso Mes</span>
                         <span className="font-bold text-slate-200">{cumplimientoCanal}%</span>
@@ -288,8 +283,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* BLOQUE DE MÉTRICAS INTERNAS */}
-                    <div className="space-y-2.5 text-xs sm:text-sm border-b border-slate-800 pb-4 mb-4">
+                    {/* BLOQUE DE RITMOS DIARIOS */}
+                    <div className="space-y-2 text-xs sm:text-sm border-b border-slate-800/60 pb-3 mb-3">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">Ritmo de Hoy:</span>
                         <span className="font-semibold text-slate-100">${diarioActual.toLocaleString('es-AR')}</span>
@@ -300,20 +295,31 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* ACUMULADO DEL MES DEL CANAL */}
+                    {/* CONTENEDOR DE TICKET PROMEDIO Y PEDIDOS (Lado a Lado) */}
+                    <div className="grid grid-cols-2 gap-2 text-[11px] mb-3 border-b border-slate-800/60 pb-3">
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center sm:text-left">
+                        <span className="text-slate-500 block mb-0.5">Pedidos</span>
+                        <span className="font-bold text-slate-200">{cantPedidos.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center sm:text-left">
+                        <span className="text-slate-500 block mb-0.5">Ticket Prom.</span>
+                        <span className="font-bold text-teal-400">${ticketProm.toLocaleString('es-AR')}</span>
+                      </div>
+                    </div>
+
+                    {/* ACUMULADO MONTO DEL MES */}
                     <div className="flex justify-between items-center text-xs bg-slate-950/60 p-2 rounded-xl border border-slate-850">
                       <span className="text-slate-400 font-medium">Llevamos del Mes:</span>
                       <span className="font-bold text-indigo-300">${acum.toLocaleString('es-AR')}</span>
                     </div>
                   </div>
 
-                  {/* MENSAJE CON LOS VALORES TOTALMENTE FORMATEADOS A PESOS */}
-                  <div className={`mt-5 p-3 rounded-xl text-xs font-medium text-center transition ${
+                  <div className={`mt-4 p-2.5 rounded-xl text-xs font-medium text-center transition ${
                     enRitmo ? 'bg-emerald-500/5 text-emerald-300 border border-emerald-500/10' : 'bg-blue-500/5 text-blue-300 border border-blue-500/10'
                   }`}>
                     {enRitmo 
-                      ? '🎯 Sosteniendo esta constancia el canal cierra en verde impecable.' 
-                      : `Desafío de hoy: Sumar $${brechaDiaria.toLocaleString('es-AR')} para equilibrar el ritmo.`
+                      ? '🎯 Ritmo sostenido. El canal cierra mes en verde.' 
+                      : `Falta sumar $${brechaDiaria.toLocaleString('es-AR')} hoy.`
                     }
                   </div>
                 </div>

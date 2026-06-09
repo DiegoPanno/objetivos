@@ -113,6 +113,16 @@ export default function App() {
   const objetivoDiarioCumplido = porcentajeDiarioAlcanzado >= 100;
   const brechaEnPlata = ritmoDiarioGlobalRequerido - ritmoDiarioGlobalActualCelda;
 
+  // LÓGICA DE PROYECCIÓN REAL DIRECTA POR CÓDIGO
+  const hoy = new Date();
+  const diaActual = hoy.getDate(); // Lee dinámicamente que hoy es día 9
+  const diasTotalesMes = 30; // Junio
+  
+  const promedioRealPorDia = totalAcumulado / diaActual;
+  const proyeccionFinalMes = promedioRealPorDia * diasTotalesMes;
+  const brechaMetaFinal = proyeccionFinalMes - totalMeta;
+  const seAlcanzaObjetivo = brechaMetaFinal >= 0;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans">
       
@@ -212,7 +222,7 @@ export default function App() {
             ></div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800/60 text-center sm:text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800/60 text-center sm:text-left items-center">
             <div>
               <span className="text-xs text-slate-400 block">Llevamos Facturado</span>
               <span className="text-lg sm:text-xl font-bold text-slate-100">${totalAcumulado.toLocaleString('es-AR')}</span>
@@ -221,14 +231,26 @@ export default function App() {
               <span className="text-xs text-slate-400 block">Meta Final Junio</span>
               <span className="text-lg sm:text-xl font-bold text-slate-400">${totalMeta.toLocaleString('es-AR')}</span>
             </div>
-            <div className="col-span-2 sm:col-span-1 bg-slate-950/40 p-2 rounded-xl border border-slate-800/40">
-              <span className="text-xs text-purple-400 font-medium block">Eficiencia de Canales</span>
-              <span className="text-sm font-bold text-white">4 Canales Operativos</span>
+            
+            {/* EL BLOQUE SOLICITADO REFORMADO CON DISEÑO INTEGRADO Y TEXTO CORRECTO */}
+            <div className={`p-3 rounded-2xl border ${seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400'}`}>
+              <span className="text-[11px] font-bold uppercase tracking-wide block text-slate-400 mb-1">
+                Proyectado según facturación actual (Día {diaActual}/30)
+              </span>
+              <span className="text-lg font-black block text-white mb-0.5">
+                ${proyeccionFinalMes.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+              </span>
+              <span className="text-xs font-bold block">
+                {seAlcanzaObjetivo 
+                  ? `🟢 ¡Meta superada por +$${brechaMetaFinal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}!` 
+                  : `⚠️ Nos quedamos cortos por -$${Math.abs(brechaMetaFinal).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
+                }
+              </span>
             </div>
           </div>
         </section>
 
-        {/* TARJETAS INDIVIDUALES POR CANAL */}
+        {/* TARJETAS INDIVIDUALES POR CANAL (IGUALES A LA VERSIÓN DE LA CAPTURA) */}
         <section>
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-200">Enfoque por Canal de Venta</h2>
@@ -242,7 +264,6 @@ export default function App() {
               const diarioActual = limpiarNumero(c.actualdiario);
               const diarioReq = limpiarNumero(c.requeridodiario);
               
-              // Nuevas métricas extraídas dinámicamente de las columnas K y L
               const cantPedidos = limpiarNumero(c.pedidos || Object.values(c)[10]);
               const ticketProm = limpiarNumero(c.ticket_promedio || Object.values(c)[11]);
 

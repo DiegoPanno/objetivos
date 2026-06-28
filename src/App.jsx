@@ -21,16 +21,18 @@ export default function App() {
         return response.text();
       })
       .then((text) => {
-        const lineas = text.split("\n").map(linea => linea.trim()).filter(Boolean);
-        const cabeceras = lineas[0].split(",");
+        const lineas = text.split(/\r?\n/).map(linea => linea.trim()).filter(Boolean);
+        const cabeceras = lineas[0].split(",").map(c => c.replace(/\r/g, "").trim());
         
         const filasProcesadas = lineas.slice(1).map((linea) => {
           const valores = linea.split(",");
           const objeto = {};
+          
           cabeceras.forEach((cabecera, i) => {
-            const clave = cabecera.replace("\r", "").trim();
-            objeto[clave] = valores[i] ? valores[i].replace("\r", "").trim() : "";
+            const valorLimpio = valores[i] ? valores[i].replace(/\r/g, "").trim() : "";
+            objeto[cabecera] = valorLimpio;
           });
+          
           return objeto;
         });
 
@@ -41,7 +43,7 @@ export default function App() {
         setTotalesGlobales({
           totalAcumulado: limpiarNumero(filaOcho["acumulado"] || filaOcho[cabeceras[4]]), 
           totalMeta: limpiarNumero(filaDos["Objetivo del mes"] || filaDos[cabeceras[8]]), 
-          ritmoDiarioGlobalRequerido: limpiarNumero(filaDos["Objetivo diario gupal"] || filaDos[cabeceras[9]]), 
+          ritmoDiarioGlobalRequerido: limpiarNumero(filaDos["Objetivo diario gupal"] || filaDos["Objective diario gupal"] || filaDos[cabeceras[9]]), 
           ritmoDiarioGlobalActualCelda: limpiarNumero(filaOcho["actualdiario"] || filaOcho[cabeceras[2]]) 
         });
 
@@ -113,10 +115,9 @@ export default function App() {
   const objetivoDiarioCumplido = porcentajeDiarioAlcanzado >= 100;
   const brechaEnPlata = ritmoDiarioGlobalRequerido - ritmoDiarioGlobalActualCelda;
 
-  // LÓGICA DE PROYECCIÓN REAL DIRECTA POR CÓDIGO
   const hoy = new Date();
-  const diaActual = hoy.getDate(); // Lee dinámicamente que hoy es día 9
-  const diasTotalesMes = 30; // Junio
+  const diaActual = hoy.getDate();
+  const diasTotalesMes = 30;
   
   const promedioRealPorDia = totalAcumulado / diaActual;
   const proyeccionFinalMes = promedioRealPorDia * diasTotalesMes;
@@ -126,7 +127,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans">
       
-      {/* HEADER DINÁMICO ESTIMULANTE */}
       <header className="max-w-7xl mx-auto mb-10 border-b border-slate-800 pb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="w-full lg:w-auto flex flex-col sm:flex-row justify-between sm:items-center lg:items-start lg:flex-col gap-4 lg:gap-1">
@@ -155,17 +155,16 @@ export default function App() {
             </div>
           </div>
 
-          {/* Termómetro de Presión Comercial Grupal */}
           <div className="w-full lg:max-w-xl bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col gap-3.5">
             <div className="flex justify-between items-end">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Ritmo de Carrera Hoy</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ritmo de Carrera Hoy</span>
                 <span className="text-2xl font-black text-white">
                   ${ritmoDiarioGlobalActualCelda.toLocaleString('es-AR')} <span className="text-xs font-normal text-slate-400">/ día</span>
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block mb-1">Meta Requerida</span>
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1">Meta Requerida</span>
                 <span className="text-xl font-bold text-slate-300">
                   ${ritmoDiarioGlobalRequerido.toLocaleString('es-AR')}
                 </span>
@@ -201,7 +200,6 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto space-y-8">
         
-        {/* TERMÓMETRO GLOBAL DEL GRUPO (PROGRESO MENSUAL ACUMULADO) */}
         <section className="bg-gradient-to-br from-slate-900 to-slate-900/60 p-6 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
           
@@ -232,7 +230,6 @@ export default function App() {
               <span className="text-lg sm:text-xl font-bold text-slate-400">${totalMeta.toLocaleString('es-AR')}</span>
             </div>
             
-            {/* EL BLOQUE SOLICITADO REFORMADO CON DISEÑO INTEGRADO Y TEXTO CORRECTO */}
             <div className={`p-3 rounded-2xl border ${seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400'}`}>
               <span className="text-[11px] font-bold uppercase tracking-wide block text-slate-400 mb-1">
                 Proyectado según facturación actual (Día {diaActual}/30)
@@ -250,7 +247,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* TARJETAS INDIVIDUALES POR CANAL (IGUALES A LA VERSIÓN DE LA CAPTURA) */}
         <section>
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-200">Enfoque por Canal de Venta</h2>
@@ -265,7 +261,13 @@ export default function App() {
               const diarioReq = limpiarNumero(c.requeridodiario);
               
               const cantPedidos = limpiarNumero(c.pedidos || Object.values(c)[10]);
-              const ticketProm = limpiarNumero(c.ticket_promedio || Object.values(c)[11]);
+              const ticketProm = limpiarNumero(c.ticket_average || c.ticket_promedio || Object.values(c)[11]);
+              
+              // Levantamos las visitas leídas del Sheets de forma robusta
+              const visitas = limpiarNumero(c.visitas || c.Visitas);
+              
+              // CÁLCULO MATEMÁTICO DIRECTO EN REACT: Evita por completo los desajustes del CSV
+              const conversion = visitas > 0 ? (cantPedidos / visitas) * 100 : 0;
 
               const cumplimientoCanal = metaCanal > 0 ? ((acum / metaCanal) * 100).toFixed(1) : 0;
               const enRitmo = diarioActual >= diarioReq;
@@ -304,7 +306,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* BLOQUE DE RITMOS DIARIOS */}
                     <div className="space-y-2 text-xs sm:text-sm border-b border-slate-800/60 pb-3 mb-3">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">Ritmo de Hoy:</span>
@@ -316,28 +317,35 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* CONTENEDOR DE TICKET PROMEDIO Y PEDIDOS (Lado a Lado) */}
-                    <div className="grid grid-cols-2 gap-2 text-[11px] mb-3 border-b border-slate-800/60 pb-3">
-                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center sm:text-left">
+                    {/* SECCIÓN DEL EMBUDO REAL CON LA CONVERSIÓN EN TIEMPO REAL */}
+                    <div className="grid grid-cols-3 gap-1.5 text-[10px] sm:text-[11px] mb-3 border-b border-slate-800/60 pb-3">
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center">
                         <span className="text-slate-500 block mb-0.5">Pedidos</span>
                         <span className="font-bold text-slate-200">{cantPedidos.toLocaleString('es-AR')}</span>
                       </div>
-                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center sm:text-left">
-                        <span className="text-slate-500 block mb-0.5">Ticket Prom.</span>
-                        <span className="font-bold text-teal-400">${ticketProm.toLocaleString('es-AR')}</span>
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center">
+                        <span className="text-slate-500 block mb-0.5">Visitas</span>
+                        <span className="font-bold text-slate-200">{visitas.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center">
+                        <span className="text-slate-500 block mb-0.5">Conversión</span>
+                        <span className="font-extrabold text-pink-400">{conversion.toFixed(2)}%</span>
                       </div>
                     </div>
 
-                    {/* ACUMULADO MONTO DEL MES */}
-                    <div className="flex justify-between items-center text-xs bg-slate-950/60 p-2 rounded-xl border border-slate-850">
-                      <span className="text-slate-400 font-medium">Llevamos del Mes:</span>
-                      <span className="font-bold text-indigo-300">${acum.toLocaleString('es-AR')}</span>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
+                        <span className="text-slate-500">Ticket Prom.</span>
+                        <span className="font-bold text-teal-400">${ticketProm.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-950/60 p-2 rounded-xl border border-slate-850">
+                        <span className="text-slate-400 font-medium">Llevamos del Mes:</span>
+                        <span className="font-bold text-indigo-300">${acum.toLocaleString('es-AR')}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className={`mt-4 p-2.5 rounded-xl text-xs font-medium text-center transition ${
-                    enRitmo ? 'bg-emerald-500/5 text-emerald-300 border border-emerald-500/10' : 'bg-blue-500/5 text-blue-300 border border-blue-500/10'
-                  }`}>
+                  <div className="mt-4 p-2.5 rounded-xl text-xs font-medium text-center border bg-slate-900/20 text-slate-300 border-slate-800">
                     {enRitmo 
                       ? '🎯 Ritmo sostenido. El canal cierra mes en verde.' 
                       : `Falta sumar $${brechaDiaria.toLocaleString('es-AR')} hoy.`

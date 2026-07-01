@@ -117,7 +117,7 @@ export default function App() {
               🚀 Panel de Ritmo Diario
             </h1>
             
-            {/* BOTONES PREMIUM DE SWITCH MULTIMES */}
+            {/* BOTONES MULTIMES */}
             <div className="flex items-center gap-2 mt-3 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start">
               <button
                 onClick={() => setMesSeleccionado('julio')}
@@ -152,7 +152,7 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto space-y-8">
         
-        {/* CONTROL DE RITMO DIARIO DE LA VISTA SELECCIONADA */}
+        {/* CONTROL DE RITMO DIARIO */}
         <section className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl max-w-3xl">
           <div className="flex justify-between items-end mb-3">
             <div>
@@ -234,14 +234,14 @@ export default function App() {
             {mesSeleccionado === 'julio' ? (
               seAlcanzaObjetivo 
                 ? `🟢 ¡Superando la meta por +$${brechaMetaFinal.toLocaleString('es-AR', {maximumFractionDigits:0})}!`
-                : `⚠️ Nos quedaríamos cortos por -$${Math.abs(brechaMetaFinal).toLocaleString('es-AR', {maximumFractionDigits:0})}`
+                : `⚠️ Nos quedamos cortos por -$${Math.abs(brechaMetaFinal).toLocaleString('es-AR', {maximumFractionDigits:0})}`
             ) : (
               `Meta de Junio cerrada exitosamente al ${porcentajeGlobal}%`
             )}
           </div>
         </section>
 
-        {/* COMPONENTE: TARJETAS DE ENFOQUE POR CANAL */}
+        {/* TARJETAS DE ENFOQUE POR CANAL */}
         <section>
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-200">Enfoque por Canal de Venta ({mesSeleccionado.toUpperCase()})</h2>
@@ -258,9 +258,9 @@ export default function App() {
               const ticketProm = limpiarNumero(c["ticket promedio"]);
               const visitas = limpiarNumero(c.Visitas);
               
-              // 🛠️ EL AJUSTE CORRECTOR: Limpiamos comillas duplicadas que inyecta el CSV en strings con comas
-              const conversionRaw = c.Conversion || "0,00%";
-              const conversion = conversionRaw.replace(/"/g, '').trim();
+              // 🧮 CÁLCULO DE CONVERSIÓN EN TIEMPO REAL REALIZADO POR CÓDIGO
+              // Evita errores de parsing por comas o strings defectuosos del CSV
+              const conversionCalculada = visitas > 0 ? ((cantPedidos / visitas) * 100).toFixed(2) : "0.00";
 
               const cumplimientoCanal = metaCanal > 0 ? ((acum / metaCanal) * 100).toFixed(1) : 0;
               const enRitmo = diarioActual >= diarioReq;
@@ -301,7 +301,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* GRIDS TRANSACCIONALES DE TARJETA CON CONVERSIÓN PURA */}
+                    {/* GRIDS TRANSACCIONALES */}
                     <div className="grid grid-cols-2 gap-2 text-[10px] mb-3 border-b border-slate-800/60 pb-3">
                       <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
                         <span className="text-slate-500 block mb-0.5">Pedidos</span>
@@ -316,11 +316,11 @@ export default function App() {
                         <span className="font-bold text-amber-400">{visitas.toLocaleString('es-AR')}</span>
                       </div>
                       
-                      {/* ACÁ MUESTRA EL PORCENTAJE DE CONVERSIÓN FORMATEADO Y SIN COMILLAS EXTRAPOLADAS */}
+                      {/* RENDERIZADO DE CONVERSIÓN PURA DESDE LA MATEMÁTICA INTERNA */}
                       <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
                         <span className="text-slate-500 block mb-0.5">Conversión</span>
                         <span className="font-bold text-emerald-400">
-                          {conversion.includes('%') ? conversion : `${conversion}%`}
+                          {conversionCalculada}%
                         </span>
                       </div>
                     </div>
@@ -331,7 +331,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className={`mt-4 p-2.5 rounded-xl text-xs font-medium text-center ${enRitmo ? 'bg-emerald-500/5 text-emerald-300' : 'bg-blue-500/5 text-blue-300'}`}>
+                  <div className={`mt-4 p-2.5 rounded-xl text-xs font-medium text-center transition ${enRitmo ? 'bg-emerald-500/5 text-emerald-300' : 'bg-blue-500/5 text-blue-300'}`}>
                     {enRitmo ? '🎯 Objetivo en cumplimiento.' : `Falta sumar $${brechaDiaria.toLocaleString('es-AR')} hoy.`}
                   </div>
                 </div>

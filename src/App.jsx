@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 export default function App() {
-  const [canales, setCanales] = useState([]);
-  const [totalesGlobales, setTotalesGlobales] = useState({
-    totalAcumulado: 0,
-    totalMeta: 0,
-    ritmoDiarioGlobalRequerido: 0,
-    ritmoDiarioGlobalActualCelda: 0 
-  });
+  const [mesSeleccionado, setMesSeleccionado] = useState('julio'); // 'julio' o 'junio'
+  const [datosJulio, setDatosJulio] = useState({ canales: [], globales: {} });
+  const [datosJunio, setDatosJunio] = useState({ canales: [], globales: {} });
+  
   const [cargando, setCargando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
   const [error, setError] = useState(null);
@@ -15,51 +12,57 @@ export default function App() {
 
   const traerDatosDeGoogle = () => {
     setSincronizando(true);
-    fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?output=csv")
-      .then((response) => {
-        if (!response.ok) throw new Error("No se pudo conectar con Google Drive.");
-        return response.text();
-      })
-      .then((text) => {
-        const lineas = text.split(/\r?\n/).map(linea => linea.trim()).filter(Boolean);
-        const cabeceras = lineas[0].split(",").map(c => c.replace(/\r/g, "").trim());
+
+    // Tus links CSV exactos por pestañas
+    const urlJulio = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=51856544&single=true&output=csv";
+    const urlJunio = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=0&single=true&output=csv";
+
+    Promise.all([
+      fetch(urlJulio).then(res => { if (!res.ok) throw new Error("Error en Julio"); return res.text(); }),
+      fetch(urlJunio).then(res => { if (!res.ok) throw new Error("Error en Junio"); return res.text(); })
+    ])
+      .then(([csvJulio, csvJunio]) => {
         
-        const filasProcesadas = lineas.slice(1).map((linea) => {
-          const valores = linea.split(",");
-          const objeto = {};
+        // Función para procesar la estructura de cada pestaña
+        const procesarMes = (csvText) => {
+          const lineas = csvText.split("\n").map(l => l.trim()).filter(Boolean);
+          const cabeceras = lineas[0].split(",").map(c => c.replace("\r", "").trim());
           
-          cabeceras.forEach((cabecera, i) => {
-            const valorLimpio = valores[i] ? valores[i].replace(/\r/g, "").trim() : "";
-            objeto[cabecera] = valorLimpio;
+          const filas = lineas.slice(1).map((linea) => {
+            const valores = linea.split(",");
+            const objeto = {};
+            cabeceras.forEach((cab, i) => {
+              objeto[cab] = valores[i] ? valores[i].replace("\r", "").trim() : "";
+            });
+            return objeto;
           });
-          
-          return objeto;
-        });
 
-        const canalesIndividuales = filasProcesadas.slice(0, 4);
-        const filaOcho = filasProcesadas[6] || {}; 
-        const filaDos = filasProcesadas[0] || {}; 
+          return {
+            canales: filas.slice(0, 4),
+            globales: {
+              totalAcumulado: limpiarNumero(filas[6]?.["acumulado"]),
+              totalMeta: limpiarNumero(filas[0]?.["Objetivo del mes"]),
+              ritmoDiarioGlobalRequerido: limpiarNumero(filas[0]?.["Objective diario gupal"] || filas[0]?.["Objetivo diario gupal"]),
+              ritmoDiarioGlobalActualCelda: limpiarNumero(filas[6]?.["actualdiario"]),
+              diaDeVenta: limpiarNumero(filas[0]?.["día de venta"]) || 1
+            }
+          };
+        };
 
-        setTotalesGlobales({
-          totalAcumulado: limpiarNumero(filaOcho["acumulado"] || filaOcho[cabeceras[4]]), 
-          totalMeta: limpiarNumero(filaDos["Objetivo del mes"] || filaDos[cabeceras[8]]), 
-          ritmoDiarioGlobalRequerido: limpiarNumero(filaDos["Objetivo diario gupal"] || filaDos["Objective diario gupal"] || filaDos[cabeceras[9]]), 
-          ritmoDiarioGlobalActualCelda: limpiarNumero(filaOcho["actualdiario"] || filaOcho[cabeceras[2]]) 
-        });
+        setDatosJulio(procesarMes(csvJulio));
+        setDatosJunio(procesarMes(csvJunio));
 
-        setCanales(canalesIndividuales);
         setError(null);
         setCargando(false);
         setSincronizando(false);
         
         const ahora = new Date();
         const horaFormateada = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const fechaFormateada = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        setUltimaActualizacion(`${fechaFormateada} a las ${horaFormateada}`);
+        setUltimaActualizacion(`${ahora.toLocaleDateString('es-AR')} a las ${horaFormateada}`);
       })
       .catch((err) => {
         console.error(err);
-        setError(err.message);
+        setError("Error de comunicación al sincronizar las pestañas con Google Sheets.");
         setCargando(false);
         setSincronizando(false);
       });
@@ -71,11 +74,7 @@ export default function App() {
 
   const limpiarNumero = (valor) => {
     if (!valor) return 0;
-    const limpio = String(valor)
-      .replace(/\$/g, '')
-      .replace(/\./g, '')
-      .replace(/\s/g, '')
-      .trim();
+    const limpio = String(valor).replace(/\$/g, '').replace(/\./g, '').replace(/\s/g, '').trim();
     const numero = Number(limpio);
     return isNaN(numero) ? 0 : numero;
   };
@@ -84,115 +83,68 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 font-sans gap-4">
         <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm font-medium tracking-wide text-slate-300">Conectando directo con Google Drive...</p>
+        <p className="text-sm font-medium tracking-wide text-slate-300">Cargando panel comercial interactivo...</p>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-rose-400 font-sans p-4">
-        <div className="bg-rose-500/10 border border-rose-500/20 p-6 rounded-2xl max-w-md text-center">
-          <span className="text-3xl block mb-2">⚠️</span>
-          <p className="font-bold text-lg text-white mb-1">Error de sincronización</p>
-          <p className="text-sm text-slate-400 mb-4">{error}</p>
-          <button 
-            onClick={traerDatosDeGoogle}
-            className="bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-rose-600 transition"
-          >
-            Reintentar Conexión
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Selección de datos según el mes activo en la UI
+  const datosActivos = mesSeleccionado === 'julio' ? datosJulio : datosJunio;
+  const { totalAcumulado, totalMeta, ritmoDiarioGlobalRequerido, ritmoDiarioGlobalActualCelda, diaDeVenta } = datosActivos.globales;
+  const canalesActivos = datosActivos.canales;
 
-  const { totalAcumulado, totalMeta, ritmoDiarioGlobalRequerido, ritmoDiarioGlobalActualCelda } = totalesGlobales;
   const porcentajeGlobal = totalMeta > 0 ? ((totalAcumulado / totalMeta) * 100).toFixed(1) : 0;
-  
   const porcentajeDiarioAlcanzado = ritmoDiarioGlobalRequerido > 0 ? (ritmoDiarioGlobalActualCelda / ritmoDiarioGlobalRequerido) * 100 : 0;
   const porcentajeQueFalta = 100 - porcentajeDiarioAlcanzado;
   const objetivoDiarioCumplido = porcentajeDiarioAlcanzado >= 100;
   const brechaEnPlata = ritmoDiarioGlobalRequerido - ritmoDiarioGlobalActualCelda;
 
-  const hoy = new Date();
-  const diaActual = hoy.getDate();
-  const diasTotalesMes = 30;
-  
-  const promedioRealPorDia = totalAcumulado / diaActual;
+  // Matemática predictiva adaptada al mes seleccionado (Julio 31 días, Junio 30 días)
+  const diasTotalesMes = mesSeleccionado === 'julio' ? 31 : 30;
+  const promedioRealPorDia = totalAcumulado / diaDeVenta;
   const proyeccionFinalMes = promedioRealPorDia * diasTotalesMes;
   const brechaMetaFinal = proyeccionFinalMes - totalMeta;
   const seAlcanzaObjetivo = brechaMetaFinal >= 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans antialiased">
       
+      {/* HEADER CON SELECTOR DE PERIODO */}
       <header className="max-w-7xl mx-auto mb-10 border-b border-slate-800 pb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row justify-between sm:items-center lg:items-start lg:flex-col gap-4 lg:gap-1">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 bg-clip-text text-transparent">
-                🚀 Panel de Ritmo Diario
-              </h1>
-              <p className="text-slate-400 mt-1 text-sm">
-                Junio 2026 • Pinturerías Ámbito
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+              🚀 Panel de Ritmo Diario
+            </h1>
             
-            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-800/60 p-3 rounded-2xl self-start sm:self-auto">
+            {/* BOTONES PREMIUM DE SWITCH MULTIMES */}
+            <div className="flex items-center gap-2 mt-3 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start">
               <button
-                onClick={traerDatosDeGoogle}
-                disabled={sincronizando}
-                className={`p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition active:scale-95 border border-slate-700/50 flex items-center justify-center ${sincronizando ? 'animate-spin cursor-not-allowed' : ''}`}
-                title="Sincronizar planillas ahora"
+                onClick={() => setMesSeleccionado('julio')}
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${mesSeleccionado === 'julio' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                🔄
+                Julio 2026 (Activo)
               </button>
-              <div>
-                <span className="text-[10px] text-slate-500 uppercase font-bold block tracking-wider">Último refresco</span>
-                <span className="text-xs font-semibold text-slate-300">{ultimaActualizacion}</span>
-              </div>
+              <button
+                onClick={() => setMesSeleccionado('junio')}
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${mesSeleccionado === 'junio' ? 'bg-slate-800 text-slate-100 shadow border border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Junio 2026 (Histórico)
+              </button>
             </div>
           </div>
-
-          <div className="w-full lg:max-w-xl bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col gap-3.5">
-            <div className="flex justify-between items-end">
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ritmo de Carrera Hoy</span>
-                <span className="text-2xl font-black text-white">
-                  ${ritmoDiarioGlobalActualCelda.toLocaleString('es-AR')} <span className="text-xs font-normal text-slate-400">/ día</span>
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1">Meta Requerida</span>
-                <span className="text-xl font-bold text-slate-300">
-                  ${ritmoDiarioGlobalRequerido.toLocaleString('es-AR')}
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
-              <div 
-                className={`h-full rounded-full transition-all duration-1000 shadow-lg ${
-                  objetivoDiarioCumplido 
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-emerald-500/20' 
-                    : 'bg-gradient-to-r from-amber-500 via-orange-400 to-cyan-500 shadow-orange-500/20'
-                }`}
-                style={{ width: `${Math.min(porcentajeDiarioAlcanzado, 100)}%` }}
-              ></div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-1.5 border-t border-slate-800/60 pt-2">
-              <span className={`font-black uppercase tracking-wide flex items-center gap-1 ${objetivoDiarioCumplido ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {objetivoDiarioCumplido && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>}
-                {porcentajeDiarioAlcanzado.toFixed(1)}% Alcanzado
-              </span>
-              <span className="font-medium text-slate-300">
-                {objetivoDiarioCumplido 
-                  ? '🎉 ¡Ritmo superado! Sostener esta marcha para blindar el mes.' 
-                  : `Falta solo un ${porcentajeQueFalta.toFixed(1)}% ($${brechaEnPlata.toLocaleString('es-AR')}) para quebrar el día.`
-                }
-              </span>
+          
+          <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 p-3 rounded-2xl">
+            <button
+              onClick={traerDatosDeGoogle}
+              disabled={sincronizando}
+              className={`p-2 rounded-xl bg-slate-800 text-slate-200 transition ${sincronizando ? 'animate-spin' : ''}`}
+            >
+              🔄
+            </button>
+            <div className="text-[11px]">
+              <span className="text-slate-500 uppercase font-bold block">Último refresco</span>
+              <span className="text-xs font-semibold text-slate-300">{ultimaActualizacion}</span>
             </div>
           </div>
         </div>
@@ -200,13 +152,53 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto space-y-8">
         
-        <section className="bg-gradient-to-br from-slate-900 to-slate-900/60 p-6 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-          
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+        {/* CONTROL DE RITMO DIARIO DE LA VISTA SELECCIONADA */}
+        <section className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl max-w-3xl">
+          <div className="flex justify-between items-end mb-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-300">Progreso Consolidado del Mes</h2>
-              <p className="text-xs text-slate-400">Avance hacia el gran objetivo comercial de Junio</p>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">
+                Ritmo Diario ({mesSeleccionado.toUpperCase()})
+              </span>
+              <span className="text-2xl font-black text-white">
+                ${ritmoDiarioGlobalActualCelda.toLocaleString('es-AR')} <span className="text-xs font-normal text-slate-400">/ día</span>
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block mb-1">Meta Requerida</span>
+              <span className="text-xl font-bold text-slate-300">
+                ${ritmoDiarioGlobalRequerido.toLocaleString('es-AR')}
+              </span>
+            </div>
+          </div>
+
+          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800 mb-2">
+            <div 
+              className={`h-full rounded-full transition-all duration-1000 ${
+                objetivoDiarioCumplido ? 'bg-emerald-400' : 'bg-gradient-to-r from-amber-500 to-cyan-500'
+              }`}
+              style={{ width: `${Math.min(porcentajeDiarioAlcanzado, 100)}%` }}
+            ></div>
+          </div>
+
+          <div className="flex justify-between text-xs text-slate-400">
+            <span className={`font-black uppercase ${objetivoDiarioCumplido ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {porcentajeDiarioAlcanzado.toFixed(1)}% Alcanzado
+            </span>
+            <span>
+              {objetivoDiarioCumplido 
+                ? '🎉 ¡Ritmo diario superado!' 
+                : `Falta solo un ${porcentajeQueFalta.toFixed(1)}% ($${brechaEnPlata.toLocaleString('es-AR')})`
+              }
+            </span>
+          </div>
+        </section>
+
+        {/* PROGRESO MENSUAL CONSOLIDADO */}
+        <section className="bg-gradient-to-br from-slate-900 to-slate-900/60 p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-200">Progreso Consolidado del Mes ({mesSeleccionado.toUpperCase()})</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Métricas de facturación acumulada del periodo seleccionado</p>
             </div>
             <div className="text-right">
               <span className="text-2xl sm:text-3xl font-black text-indigo-400">{porcentajeGlobal}%</span>
@@ -215,80 +207,75 @@ export default function App() {
 
           <div className="w-full bg-slate-800 h-6 rounded-2xl overflow-hidden p-1 border border-slate-700/50">
             <div 
-              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl transition-all duration-1000 ease-out shadow-lg shadow-indigo-500/30"
+              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl transition-all duration-1000"
               style={{ width: `${Math.min(porcentajeGlobal, 100)}%` }}
             ></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800/60 text-center sm:text-left items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800 text-sm">
             <div>
-              <span className="text-xs text-slate-400 block">Llevamos Facturado</span>
-              <span className="text-lg sm:text-xl font-bold text-slate-100">${totalAcumulado.toLocaleString('es-AR')}</span>
+              <span className="text-xs text-slate-400 block mb-0.5">Total Facturado Acumulado</span>
+              <span className="text-xl font-black text-slate-100">${totalAcumulado.toLocaleString('es-AR')}</span>
             </div>
             <div>
-              <span className="text-xs text-slate-400 block">Meta Final Junio</span>
-              <span className="text-lg sm:text-xl font-bold text-slate-400">${totalMeta.toLocaleString('es-AR')}</span>
+              <span className="text-xs text-slate-400 block mb-0.5">Meta Mensual Establecida</span>
+              <span className="text-xl font-black text-slate-300">${totalMeta.toLocaleString('es-AR')}</span>
             </div>
-            
-            <div className={`p-3 rounded-2xl border ${seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400'}`}>
-              <span className="text-[11px] font-bold uppercase tracking-wide block text-slate-400 mb-1">
-                Proyectado según facturación actual (Día {diaActual}/30)
-              </span>
-              <span className="text-lg font-black block text-white mb-0.5">
-                ${proyeccionFinalMes.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-              </span>
-              <span className="text-xs font-bold block">
-                {seAlcanzaObjetivo 
-                  ? `🟢 ¡Meta superada por +$${brechaMetaFinal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}!` 
-                  : `⚠️ Nos quedamos cortos por -$${Math.abs(brechaMetaFinal).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
-                }
-              </span>
-            </div>
+          </div>
+
+          {/* AJUSTE PREDICTIVO GLOBAL O TOTAL CERRADO */}
+          <div className={`p-3 rounded-xl border text-xs font-semibold ${seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400' : 'bg-rose-500/5 border-rose-500/10 text-rose-400'}`}>
+            <span className="text-slate-400 font-normal uppercase text-[10px] tracking-wide block mb-0.5">
+              {mesSeleccionado === 'julio' ? `Proyectado según facturación actual (Día ${diaDeVenta}/${diasTotalesMes}):` : 'Resultado Final de Cierre del Periodo:'}
+            </span>
+            <span className="text-sm font-bold text-white mr-2">
+              ${(mesSeleccionado === 'julio' ? proyeccionFinalMes : totalAcumulado).toLocaleString('es-AR', {maximumFractionDigits:0})}
+            </span>
+            {mesSeleccionado === 'julio' ? (
+              seAlcanzaObjetivo 
+                ? `🟢 ¡Superando la meta por +$${brechaMetaFinal.toLocaleString('es-AR', {maximumFractionDigits:0})}!`
+                : `⚠️ Nos quedaríamos cortos por -$${Math.abs(brechaMetaFinal).toLocaleString('es-AR', {maximumFractionDigits:0})}`
+            ) : (
+              `Meta de Junio cerrada exitosamente al ${porcentajeGlobal}%`
+            )}
           </div>
         </section>
 
+        {/* COMPONENTE: TARJETAS DE ENFOQUE POR CANAL */}
         <section>
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-200">Enfoque por Canal de Venta</h2>
-            <p className="text-xs text-slate-400">Promedio diario actual frente al requerido de cada sector</p>
+            <h2 className="text-xl font-bold text-slate-200">Enfoque por Canal de Venta ({mesSeleccionado.toUpperCase()})</h2>
+            <p className="text-xs text-slate-400">Promedio diario actual frente al requerido de cada sector comercial</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {canales.map((c, idx) => {
+            {canalesActivos.map((c, idx) => {
               const acum = limpiarNumero(c.acumulado);
               const metaCanal = limpiarNumero(c.meta);
               const diarioActual = limpiarNumero(c.actualdiario);
               const diarioReq = limpiarNumero(c.requeridodiario);
+              const cantPedidos = limpiarNumero(c.Pedidos);
+              const ticketProm = limpiarNumero(c["ticket promedio"]);
+              const visitas = limpiarNumero(c.Visitas);
               
-              const cantPedidos = limpiarNumero(c.pedidos || Object.values(c)[10]);
-              const ticketProm = limpiarNumero(c.ticket_average || c.ticket_promedio || Object.values(c)[11]);
-              
-              // Levantamos las visitas leídas del Sheets de forma robusta
-              const visitas = limpiarNumero(c.visitas || c.Visitas);
-              
-              // CÁLCULO MATEMÁTICO DIRECTO EN REACT: Evita por completo los desajustes del CSV
-              const conversion = visitas > 0 ? (cantPedidos / visitas) * 100 : 0;
+              // 🛠️ EL AJUSTE CORRECTOR: Limpiamos comillas duplicadas que inyecta el CSV en strings con comas
+              const conversionRaw = c.Conversion || "0,00%";
+              const conversion = conversionRaw.replace(/"/g, '').trim();
 
               const cumplimientoCanal = metaCanal > 0 ? ((acum / metaCanal) * 100).toFixed(1) : 0;
               const enRitmo = diarioActual >= diarioReq;
               const brechaDiaria = diarioReq - diarioActual;
 
-              const nombreCanalAMostrar = c.canal === "VENTA TELEFÓNICA" ? "VTA TELEFÓNICA" : c.canal;
+              const nombreCanalAMostrar = c.canal === "Vta.Telefono." ? "VENTA TELEFÓNICA" : c.canal.toUpperCase();
 
               return (
-                <div 
-                  key={c.id || idx} 
-                  className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl hover:border-slate-700 transition duration-300 group"
-                >
+                <div key={c.id || idx} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
                   <div>
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold tracking-wider text-slate-100 group-hover:text-indigo-400 transition uppercase text-sm sm:text-base truncate" title={c.canal}>
-                        {nombreCanalAMostrar}
-                      </h3>
-                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                      <h3 className="font-bold tracking-wider text-slate-100 text-sm truncate">{nombreCanalAMostrar}</h3>
+                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
                         enRitmo ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${enRitmo ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
                         {enRitmo ? 'En Ritmo' : 'Empujar'}
                       </span>
                     </div>
@@ -298,69 +285,64 @@ export default function App() {
                         <span>Progreso Mes</span>
                         <span className="font-bold text-slate-200">{cumplimientoCanal}%</span>
                       </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${enRitmo ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                          style={{ width: `${Math.min(cumplimientoCanal, 100)}%` }}
-                        ></div>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${enRitmo ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(cumplimientoCanal, 100)}%` }} ></div>
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-xs sm:text-sm border-b border-slate-800/60 pb-3 mb-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Ritmo de Hoy:</span>
-                        <span className="font-semibold text-slate-100">${diarioActual.toLocaleString('es-AR')}</span>
+                    <div className="space-y-2 text-xs border-b border-slate-800/60 pb-3 mb-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Ritmo:</span>
+                        <span className="font-semibold text-slate-200">${diarioActual.toLocaleString('es-AR')}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Ritmo Requerido:</span>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Requerido:</span>
                         <span className="font-semibold text-cyan-400">${diarioReq.toLocaleString('es-AR')}</span>
                       </div>
                     </div>
 
-                    {/* SECCIÓN DEL EMBUDO REAL CON LA CONVERSIÓN EN TIEMPO REAL */}
-                    <div className="grid grid-cols-3 gap-1.5 text-[10px] sm:text-[11px] mb-3 border-b border-slate-800/60 pb-3">
-                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center">
+                    {/* GRIDS TRANSACCIONALES DE TARJETA CON CONVERSIÓN PURA */}
+                    <div className="grid grid-cols-2 gap-2 text-[10px] mb-3 border-b border-slate-800/60 pb-3">
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
                         <span className="text-slate-500 block mb-0.5">Pedidos</span>
                         <span className="font-bold text-slate-200">{cantPedidos.toLocaleString('es-AR')}</span>
                       </div>
-                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center">
-                        <span className="text-slate-500 block mb-0.5">Visitas</span>
-                        <span className="font-bold text-slate-200">{visitas.toLocaleString('es-AR')}</span>
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
+                        <span className="text-slate-500 block mb-0.5">Ticket Prom.</span>
+                        <span className="font-bold text-teal-400">${ticketProm.toLocaleString('es-AR')}</span>
                       </div>
-                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60 text-center">
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
+                        <span className="text-slate-500 block mb-0.5">Visitas</span>
+                        <span className="font-bold text-amber-400">{visitas.toLocaleString('es-AR')}</span>
+                      </div>
+                      
+                      {/* ACÁ MUESTRA EL PORCENTAJE DE CONVERSIÓN FORMATEADO Y SIN COMILLAS EXTRAPOLADAS */}
+                      <div className="bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
                         <span className="text-slate-500 block mb-0.5">Conversión</span>
-                        <span className="font-extrabold text-pink-400">{conversion.toFixed(2)}%</span>
+                        <span className="font-bold text-emerald-400">
+                          {conversion.includes('%') ? conversion : `${conversion}%`}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center bg-slate-950/40 p-2 rounded-xl border border-slate-850/60">
-                        <span className="text-slate-500">Ticket Prom.</span>
-                        <span className="font-bold text-teal-400">${ticketProm.toLocaleString('es-AR')}</span>
-                      </div>
-                      <div className="flex justify-between items-center bg-slate-950/60 p-2 rounded-xl border border-slate-850">
-                        <span className="text-slate-400 font-medium">Llevamos del Mes:</span>
-                        <span className="font-bold text-indigo-300">${acum.toLocaleString('es-AR')}</span>
-                      </div>
+                    <div className="flex justify-between items-center text-xs bg-slate-950/60 p-2 rounded-xl border border-slate-850">
+                      <span className="text-slate-400 font-medium">Acumulado Mes:</span>
+                      <span className="font-bold text-indigo-300">${acum.toLocaleString('es-AR')}</span>
                     </div>
                   </div>
 
-                  <div className="mt-4 p-2.5 rounded-xl text-xs font-medium text-center border bg-slate-900/20 text-slate-300 border-slate-800">
-                    {enRitmo 
-                      ? '🎯 Ritmo sostenido. El canal cierra mes en verde.' 
-                      : `Falta sumar $${brechaDiaria.toLocaleString('es-AR')} hoy.`
-                    }
+                  <div className={`mt-4 p-2.5 rounded-xl text-xs font-medium text-center ${enRitmo ? 'bg-emerald-500/5 text-emerald-300' : 'bg-blue-500/5 text-blue-300'}`}>
+                    {enRitmo ? '🎯 Objetivo en cumplimiento.' : `Falta sumar $${brechaDiaria.toLocaleString('es-AR')} hoy.`}
                   </div>
                 </div>
               );
             })}
           </div>
         </section>
-
       </main>
-      
+
       <footer className="max-w-7xl mx-auto mt-16 text-center text-xs text-slate-500 border-t border-slate-900 pt-6">
-        Fuerza equipo • Sincronizado en tiempo real.
+        Fuerza equipo Pinturerías Ámbito • Sincronizado en tiempo real.
       </footer>
     </div>
   );

@@ -35,7 +35,6 @@ export default function App() {
             huboError = true;
             return;
           }
-          // 🔥 Pasamos los días del mes al procesar
           const diasDelMes = URLS[clave].dias;
           nuevosDatos[clave] = procesarMes(csv, diasDelMes);
         });
@@ -73,7 +72,6 @@ export default function App() {
     return isNaN(numero) ? 0 : numero;
   };
 
-  // 🔥 Función procesarMes actualizada con días del mes
   const procesarMes = (csvText, diasDelMes) => {
     const lineas = csvText.split("\n").map(l => l.trim()).filter(Boolean);
     const cabeceras = lineas[0].split(",").map(c => c.replace("\r", "").trim());
@@ -87,21 +85,84 @@ export default function App() {
       return objeto;
     });
 
-    const canales = filas.slice(0, 4).filter(f => f.canal && f.canal !== '');
-    const filaTotales = filas.find(f => f.canal?.toLowerCase().includes('total') || f.id === 'total');
-    
-    const totalMeta = limpiarNumero(canales[0]?.["Objetivo del mes"] || 0);
-    // 🔥 Cálculo CORRECTO de la meta diaria requerida
+    // 🔥 IDENTIFICAR canales PRINCIPALES (los que tienen requeridodiario o meta)
+    // y que NO son vendedores, ni totales, ni fechas
+    const canalesPrincipales = filas.filter(f => {
+      const canal = f.canal?.trim() || '';
+      const esVacio = canal === '';
+      const esTotal = canal === 'Ritmo Actual' || canal === 'Ritmo Actual de...' || canal.includes('Ritmo');
+      const esFecha = /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(canal); // Detecta fechas como "15/07/2026"
+      const esVendedor = canal === 'Gabriela' || canal === 'Iván' || canal === 'Ivan';
+      const esIdNoDeseado = f.id === 'total' || f.id === 'Ritmo Actual' || f.id === 'Ranking';
+      
+      // Un canal principal es aquel que tiene requeridodiario O meta,
+      // y no es ninguna de las exclusiones anteriores
+      const tieneRequerido = f.requeridodiario && f.requeridodiario !== '';
+      const tieneMeta = f.meta && f.meta !== '';
+      
+      return !esVacio && 
+             !esTotal && 
+             !esFecha && 
+             !esVendedor && 
+             !esIdNoDeseado &&
+             (tieneRequerido || tieneMeta);
+    });
+
+    // 🔥 IDENTIFICAR vendedores (Gabriela e Iván)
+    const vendedores = filas.filter(f => {
+      const canal = f.canal?.trim() || '';
+      return canal === 'Gabriela' || canal === 'Iván' || canal === 'Ivan';
+    });
+
+    // 🔥 Unir canales principales con sus vendedores
+    const canalesConVendedores = canalesPrincipales.map(canal => {
+      const esVentaTelefonica = canal.canal?.toLowerCase().includes('vta.telefono') || 
+                                canal.canal?.toLowerCase().includes('telefónica') ||
+                                canal.canal?.toLowerCase() === 'vtatel';
+      
+      if (esVentaTelefonica) {
+        return {
+          ...canal,
+          vendedores: vendedores.map(v => ({
+            nombre: v.canal,
+            acumulado: v.acumulado || '0',
+          }))
+        };
+      }
+      return canal;
+    });
+
+    // 🔥 Calcular totales SOLO de canales principales (excluyendo vendedores)
+    let totalAcumulado = 0;
+    let totalMeta = 0;
+    let totalActualDiario = 0;
+    let diaDeVenta = 1;
+
+    canalesPrincipales.forEach(c => {
+      const acum = limpiarNumero(c.acumulado);
+      const meta = limpiarNumero(c.meta || c["Objetivo del mes"]);
+      const actualDiario = limpiarNumero(c.actualdiario);
+      
+      totalAcumulado += acum;
+      totalMeta += meta;
+      totalActualDiario += actualDiario;
+      
+      if (c["día de venta"]) {
+        diaDeVenta = limpiarNumero(c["día de venta"]);
+      }
+    });
+
     const metaDiariaRequerida = diasDelMes > 0 ? totalMeta / diasDelMes : 0;
-    
+
     return {
-      canales: canales,
+      canales: canalesConVendedores,
+      vendedores: vendedores,
       globales: {
-        totalAcumulado: limpiarNumero(filaTotales?.["acumulado"] || canales.reduce((sum, c) => sum + limpiarNumero(c.acumulado), 0)),
+        totalAcumulado: totalAcumulado,
         totalMeta: totalMeta,
         ritmoDiarioGlobalRequerido: metaDiariaRequerida,
-        ritmoDiarioGlobalActualCelda: limpiarNumero(canales.reduce((sum, c) => sum + limpiarNumero(c.actualdiario), 0)),
-        diaDeVenta: limpiarNumero(canales[0]?.["día de venta"]) || 1
+        ritmoDiarioGlobalActualCelda: totalActualDiario,
+        diaDeVenta: diaDeVenta || 1
       }
     };
   };

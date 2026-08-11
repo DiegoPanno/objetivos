@@ -7,6 +7,12 @@ export const URLS = {
     dias: 31,
     esActivo: true
   },
+  // 🔥 Pestaña de Cliengo (embudo de llamadas)
+  funnel_agosto: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=569478321&single=true&output=csv",
+    label: "Embudo Cliengo",
+    esActivo: true
+  },
   // Históricos
   julio: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=51856544&single=true&output=csv",

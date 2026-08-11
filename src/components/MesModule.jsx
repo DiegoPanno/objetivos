@@ -1,7 +1,7 @@
 // src/components/MesModule.jsx
 import React from 'react';
+import ResumenEjecutivo from './ResumenEjecutivo';
 
-// Helper para limpiar números
 const limpiarNumero = (valor) => {
   if (!valor) return 0;
   const limpio = String(valor).replace(/\$/g, '').replace(/\./g, '').replace(/\s/g, '').trim();
@@ -13,7 +13,8 @@ export default function MesModule({
   mes, 
   datos, 
   esActivo,
-  ultimaActualizacion
+  ultimaActualizacion,
+  datosCliengo
 }) {
   const { totalAcumulado, totalMeta, ritmoDiarioGlobalRequerido, ritmoDiarioGlobalActualCelda, diaDeVenta } = datos.globales || {};
   const canalesActivos = datos.canales || [];
@@ -106,17 +107,31 @@ export default function MesModule({
         </div>
 
         {esActivo && (
-          <div className={`p-4 rounded-xl border text-xs sm:text-sm font-semibold ${seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400' : 'bg-rose-500/5 border-rose-500/10 text-rose-400'}`}>
+          <div className={`p-4 rounded-xl border text-xs sm:text-sm font-semibold ${diaDeVenta > 3 ? (seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400' : 'bg-rose-500/5 border-rose-500/10 text-rose-400') : 'bg-slate-800/30 border-slate-700/30 text-slate-300'}`}>
             <span className="text-slate-400 font-normal uppercase text-xs tracking-wide block mb-1">
-              Proyectado según facturación actual (Día {diaDeVenta || 0}/{diasTotalesMes}):
+              {diaDeVenta <= 3 
+                ? `📊 Datos iniciales (Día ${diaDeVenta || 0}/${diasTotalesMes}) - La proyección se mostrará a partir del día 3` 
+                : `Proyectado según facturación actual (Día ${diaDeVenta || 0}/${diasTotalesMes}):`
+              }
             </span>
-            <span className="text-base sm:text-lg font-black text-white mr-2">
-              ${proyeccionFinalMes?.toLocaleString('es-AR', {maximumFractionDigits:0}) || 0}
-            </span>
-            {seAlcanzaObjetivo 
-              ? `🟢 ¡Superando la meta por +$${brechaMetaFinal?.toLocaleString('es-AR', {maximumFractionDigits:0}) || 0}!`
-              : `⚠️ Nos quedaríamos cortos por -$${Math.abs(brechaMetaFinal || 0).toLocaleString('es-AR', {maximumFractionDigits:0})}`
-            }
+            {diaDeVenta > 3 ? (
+              <>
+                <span className="text-base sm:text-lg font-black text-white mr-2">
+                  ${proyeccionFinalMes?.toLocaleString('es-AR', {maximumFractionDigits:0}) || 0}
+                </span>
+                {seAlcanzaObjetivo 
+                  ? `🟢 ¡Superando la meta por +$${brechaMetaFinal?.toLocaleString('es-AR', {maximumFractionDigits:0}) || 0}!`
+                  : `⚠️ Nos quedaríamos cortos por -$${Math.abs(brechaMetaFinal || 0).toLocaleString('es-AR', {maximumFractionDigits:0})}`
+                }
+              </>
+            ) : (
+              <span className="text-slate-400">
+                ⏳ Esperando más datos para proyectar con precisión.
+                <span className="block text-xs text-slate-500 mt-1">
+                  Acumulado actual: ${totalAcumulado?.toLocaleString('es-AR') || 0} (día {diaDeVenta || 0})
+                </span>
+              </span>
+            )}
           </div>
         )}
 
@@ -147,12 +162,10 @@ export default function MesModule({
             const ticketProm = limpiarNumero(c["ticket promedio"]);
             const visitas = limpiarNumero(c.Visitas);
             
-            // Detectar si es Venta Telefónica
             const esVentaTelefonica = c.canal?.toLowerCase().includes('vta.telefono') || 
                                       c.canal?.toLowerCase().includes('telefónica') ||
                                       c.canal?.toLowerCase() === 'vtatel';
             
-            // Obtener vendedores de la propiedad que agregamos en App.jsx
             let vendedores = [];
             if (esVentaTelefonica && c.vendedores) {
               vendedores = c.vendedores
@@ -163,7 +176,6 @@ export default function MesModule({
                 .filter(v => v.venta > 0);
             }
             
-            // Fallback: buscar vendedores en el array principal
             if (esVentaTelefonica && vendedores.length === 0) {
               canalesActivos.forEach(fila => {
                 const nombreVendedor = fila.canal?.trim();
@@ -179,7 +191,6 @@ export default function MesModule({
               });
             }
             
-            // Ordenar vendedores por venta (mayor a menor)
             vendedores.sort((a, b) => b.venta - a.venta);
 
             const conversionCalculada = visitas > 0 ? ((cantPedidos / visitas) * 100).toFixed(2) : "0.00";
@@ -246,7 +257,6 @@ export default function MesModule({
                     </div>
                   </div>
 
-                  {/* MONTO ACUMULADO Y SHARE CON VENDEDORES */}
                   <div className="space-y-1.5 bg-slate-950/80 p-3 rounded-xl border border-slate-850">
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-slate-400 font-semibold">Acumulado Mes:</span>
@@ -257,7 +267,6 @@ export default function MesModule({
                       <span className="font-black text-purple-300">{participacionTotal}% del total</span>
                     </div>
                     
-                    {/* 👥 SECCIÓN DE VENDEDORES (SOLO PARA VENTA TELEFÓNICA) */}
                     {esVentaTelefonica && vendedores.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-800/60">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
@@ -282,7 +291,6 @@ export default function MesModule({
                             </div>
                           );
                         })}
-                        {/* Totales de vendedores */}
                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-800/60">
                           <span className="text-xs font-bold text-cyan-400">Total Vendedores</span>
                           <span className="text-xs font-bold text-slate-100">
@@ -302,6 +310,14 @@ export default function MesModule({
           })}
         </div>
       </section>
+
+      {/* 📊 MÓDULO CLIENGO - Renderizado sin bloqueo previo */}
+      {esActivo && (
+        <ResumenEjecutivo 
+          datosCliengo={datosCliengo} 
+          mesLabel={mes?.label || ''}
+        />
+      )}
     </div>
   );
 }

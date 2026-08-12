@@ -52,26 +52,6 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
         </div>
 
         <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 p-4 rounded-2xl border border-slate-800">
-          <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">Ventas Totales</span>
-          <div className="text-2xl font-black text-emerald-400 mt-1">{totalVentas}</div>
-          <div className="flex items-center gap-1 mt-1">
-            <span className="text-base text-slate-500">Conversión:</span>
-            <span className="text-base font-semibold text-emerald-400">{tasaConversion}%</span>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 p-4 rounded-2xl border border-slate-800">
-          <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">Operador Humano</span>
-          <div className="text-2xl font-black text-blue-400 mt-1">{operadorHumano}</div>
-          <div className="flex items-center gap-1 mt-1">
-            <span className="text-base text-slate-500">del total:</span>
-            <span className="text-base font-semibold text-blue-400">
-              {totalConversaciones > 0 ? ((operadorHumano / totalConversaciones) * 100).toFixed(1) : 0}%
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 p-4 rounded-2xl border border-slate-800">
           <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">Ventas Telefónicas</span>
           <div className="text-2xl font-black text-purple-400 mt-1">{ventaTelefonica}</div>
           <div className="flex items-center gap-1 mt-1">
@@ -82,6 +62,28 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
             <span className="text-base font-semibold text-indigo-400">{ventaWeb}</span>
           </div>
         </div>
+
+        <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 p-4 rounded-2xl border border-slate-800">
+          <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">Ventas Totales</span>
+          <div className="text-2xl font-black text-emerald-400 mt-1">{totalVentas}</div>
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-base text-slate-500">Conversión:</span>
+            <span className="text-base font-semibold text-emerald-400">{tasaConversion}%</span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 p-4 rounded-2xl border border-slate-800">
+          <span className="text-sm font-medium text-slate-400 uppercase tracking-wider">Intervención de vendedor</span>
+          <div className="text-2xl font-black text-blue-400 mt-1">{operadorHumano}</div>
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-base text-slate-500">del total:</span>
+            <span className="text-base font-semibold text-blue-400">
+              {totalConversaciones > 0 ? ((operadorHumano / totalConversaciones) * 100).toFixed(1) : 0}%
+            </span>
+          </div>
+        </div>
+
+        
       </div>
 
       {/* ETAPAS Y ASESORES */}

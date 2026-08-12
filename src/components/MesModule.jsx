@@ -1,9 +1,12 @@
 // src/components/MesModule.jsx
 import React from 'react';
 import ResumenEjecutivo from './ResumenEjecutivo';
+import GraficoEvolucionMensual from './GraficoEvolucionMensual';
 
+// Helper para limpiar números (por si acaso)
 const limpiarNumero = (valor) => {
   if (!valor) return 0;
+  if (typeof valor === 'number') return valor;
   const limpio = String(valor).replace(/\$/g, '').replace(/\./g, '').replace(/\s/g, '').trim();
   const numero = Number(limpio);
   return isNaN(numero) ? 0 : numero;
@@ -30,6 +33,30 @@ export default function MesModule({
   const proyeccionFinalMes = promedioRealPorDia * diasTotalesMes;
   const brechaMetaFinal = proyeccionFinalMes - totalMeta;
   const seAlcanzaObjetivo = brechaMetaFinal >= 0;
+
+  // Datos históricos de ejemplo (se pueden reemplazar con datos reales del drive)
+  const datosHistoricos = [
+    { 
+      mes: 'Junio', 
+      total: 45200000,
+      canales: {
+        'WEB': 8500000,
+        'MERCADO LIBRE': 22000000,
+        'BAPRO': 5200000,
+        'VENTA TELEFÓNICA': 9500000
+      }
+    },
+    { 
+      mes: 'Julio', 
+      total: 68200000,
+      canales: {
+        'WEB': 12000000,
+        'MERCADO LIBRE': 32000000,
+        'BAPRO': 8200000,
+        'VENTA TELEFÓNICA': 16000000
+      }
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -73,6 +100,15 @@ export default function MesModule({
           </span>
         </div>
       </section>
+
+      {/* 📈 GRÁFICO DE EVOLUCIÓN MENSUAL POR CANAL */}
+      {esActivo && (
+        <GraficoEvolucionMensual 
+          mesActual={mes}
+          datosActuales={datos}
+          datosHistoricos={datosHistoricos}
+        />
+      )}
 
       {/* PROGRESO MENSUAL CONSOLIDADO */}
       <section className="bg-gradient-to-br from-slate-900 to-slate-900/60 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
@@ -143,6 +179,8 @@ export default function MesModule({
         )}
       </section>
 
+      
+
       {/* TARJETAS DE ENFOQUE POR CANAL */}
       <section>
         <div className="mb-6">
@@ -162,9 +200,15 @@ export default function MesModule({
             const ticketProm = limpiarNumero(c["ticket promedio"]);
             const visitas = limpiarNumero(c.Visitas);
             
+            // 🔥 NUEVOS CAMPOS
+            const margen = c.margen || 0;
+            const litros = c.litros || 0;
+            const faltaFacturar = c.faltaFacturar || 0;
+            
             const esVentaTelefonica = c.canal?.toLowerCase().includes('vta.telefono') || 
                                       c.canal?.toLowerCase().includes('telefónica') ||
-                                      c.canal?.toLowerCase() === 'vtatel';
+                                      c.canal?.toLowerCase() === 'vtatel' ||
+                                      c.canal?.toLowerCase() === 'vtatelefono';
             
             let vendedores = [];
             if (esVentaTelefonica && c.vendedores) {
@@ -201,6 +245,7 @@ export default function MesModule({
             
             const nombreCanalAMostrar = c.canal === "Vta.Telefono." ? "VENTA TELEFÓNICA" : 
                                          c.canal === "vtatel" ? "VENTA TELEFÓNICA" :
+                                         c.canal === "vtaTelefono" ? "VENTA TELEFÓNICA" :
                                          c.canal?.toUpperCase() || '';
 
             return (
@@ -257,6 +302,23 @@ export default function MesModule({
                     </div>
                   </div>
 
+                  {/* 📊 NUEVAS MÉTRICAS: Margen y Litros */}
+                  <div className="grid grid-cols-2 gap-2 mb-4 border-b border-slate-800/60 pb-3.5">
+                    <div className="bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
+                      <span className="text-slate-400 block mb-0.5 text-[10px] font-semibold">💰 Margen</span>
+                      <span className="font-black text-sm text-slate-100">
+                        ${margen.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
+                      <span className="text-slate-400 block mb-0.5 text-[10px] font-semibold">📦 Litros</span>
+                      <span className="font-black text-slate-100 text-sm">
+                        {litros.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* MONTO ACUMULADO Y SHARE CON VENDEDORES */}
                   <div className="space-y-1.5 bg-slate-950/80 p-3 rounded-xl border border-slate-850">
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-slate-400 font-semibold">Acumulado Mes:</span>
@@ -267,6 +329,18 @@ export default function MesModule({
                       <span className="font-black text-purple-300">{participacionTotal}% del total</span>
                     </div>
                     
+                    {/* 🔥 Falta facturar */}
+                    {faltaFacturar !== 0 && (
+                      <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
+                        <span className="text-slate-400 font-medium">Falta facturar:</span>
+                        <span className={`font-black ${faltaFacturar >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          ${Math.abs(faltaFacturar).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                          {faltaFacturar < 0 && ' ✅'}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* 👥 VENDEDORES (SOLO PARA VENTA TELEFÓNICA) */}
                     {esVentaTelefonica && vendedores.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-800/60">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
@@ -282,7 +356,7 @@ export default function MesModule({
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-slate-100">
-                                  ${v.venta.toLocaleString('es-AR')}
+                                  ${v.venta.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                                 </span>
                                 <span className="text-xs text-slate-400 w-12 text-right">
                                   {porcentajeVendedor}%
@@ -294,7 +368,7 @@ export default function MesModule({
                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-800/60">
                           <span className="text-xs font-bold text-cyan-400">Total Vendedores</span>
                           <span className="text-xs font-bold text-slate-100">
-                            ${vendedores.reduce((sum, v) => sum + v.venta, 0).toLocaleString('es-AR')}
+                            ${vendedores.reduce((sum, v) => sum + v.venta, 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                           </span>
                         </div>
                       </div>
@@ -311,12 +385,20 @@ export default function MesModule({
         </div>
       </section>
 
-      {/* 📊 MÓDULO CLIENGO - Renderizado sin bloqueo previo */}
-      {esActivo && (
+      {/* 📊 MÓDULO CLIENGO - Debajo de las 4 tarjetas */}
+      {esActivo && datosCliengo && (
         <ResumenEjecutivo 
           datosCliengo={datosCliengo} 
           mesLabel={mes?.label || ''}
         />
+      )}
+
+      {esActivo && !datosCliengo && (
+        <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
+          <p className="text-xs text-amber-400">
+            ⚠️ Datos de Cliengo no disponibles. Verifica que la pestaña 'funnel_agosto' esté publicada.
+          </p>
+        </div>
       )}
     </div>
   );

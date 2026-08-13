@@ -4,45 +4,51 @@ import React from 'react';
 export default function GraficoEvolucionMensual({ 
   mesActual, 
   datosActuales,
-  proyeccionFinalMes
+  proyeccionFinalMes,
+  datosPorMes = {}
 }) {
-  // 🔥 DATOS REALES
+  // 1. Extraemos acumulados históricos o fallback
+  const facturadoJunio = datosPorMes['junio']?.globales?.totalAcumulado || 35748934;
+  const facturadoJulio = datosPorMes['julio']?.globales?.totalAcumulado || 46013841;
+
   const historicos = [
-    { mes: 'Junio', facturado: 35748934 },
-    { mes: 'Julio', facturado: 46013841 },
+    { mes: 'Junio', facturado: facturadoJunio },
+    { mes: 'Julio', facturado: facturadoJulio },
   ];
 
-  const acumuladoActual = datosActuales?.totalAcumulado || 26015463;
-  const proyeccion = proyeccionFinalMes || 67206613;
+  // 2. Datos reales y proyección de Agosto
+  const acumuladoActual = datosActuales?.globales?.totalAcumulado || datosActuales?.totalAcumulado || 0;
+  const proyeccion = proyeccionFinalMes || 0;
 
   const actual = {
-    mes: mesActual?.label || 'Agosto',
+    mes: mesActual?.label ? mesActual.label.split(' ')[0] : 'Agosto',
     acumulado: acumuladoActual,
     proyeccion: proyeccion,
   };
 
-  // Combinar datos para el gráfico
   const todosLosMeses = [
     ...historicos,
     { mes: actual.mes, facturado: actual.acumulado, esActual: true }
   ];
 
-  // Encontrar el máximo valor para escalar (incluyendo proyección)
-  const maxValor = Math.max(
+  // 3. Definir escala máxima del gráfico
+  const maxValorReal = Math.max(
     ...historicos.map(h => h.facturado),
     actual.acumulado,
     actual.proyeccion
-  ) * 1.15;
+  );
 
-  // Formatear a K (miles)
+  const divisiones = 4;
+  const maxEscala = Math.ceil((maxValorReal * 1.15) / 10000000) * 10000000 || 80000000;
+
   const formatearK = (valor) => {
+    if (!valor) return '$0';
     if (valor >= 1000000) {
       return (valor / 1000000).toFixed(1) + 'M';
     }
     return (valor / 1000).toFixed(0) + 'K';
   };
 
-  // Colores
   const colores = {
     'Junio': { bg: '#3b82f6', bgLight: '#3b82f640', text: '#60a5fa' },
     'Julio': { bg: '#06b6d4', bgLight: '#06b6d440', text: '#22d3ee' },
@@ -55,83 +61,94 @@ export default function GraficoEvolucionMensual({
         📊 Evolución Mensual
       </h3>
 
-      {/* GRÁFICO DE BARRAS */}
-      <div className="flex items-end justify-around h-56 gap-4 px-2">
-        {todosLosMeses.map((item, idx) => {
-          const esActual = item.esActual || false;
-          const altura = maxValor > 0 ? (item.facturado / maxValor) * 100 : 0;
-          const color = colores[item.mes] || colores['Agosto'];
-          
-          // Calcular altura de la proyección (solo para agosto)
-          const alturaProyeccion = esActual ? (actual.proyeccion / maxValor) * 100 : 0;
+      <div className="relative h-60 px-2">
+        
+        {/* LÍNEAS DE GRILLA HORIZONTALES UNIFORMES */}
+        <div className="absolute inset-x-0 bottom-0 h-44 flex flex-col justify-between pointer-events-none z-0">
+          {Array.from({ length: divisiones + 1 }).map((_, idx) => (
+            <div 
+              key={idx} 
+              className="w-full border-b border-slate-800/80 border-dashed"
+            />
+          ))}
+        </div>
 
-          return (
-            <div key={idx} className="flex-1 flex flex-col items-center max-w-[120px]">
-              {/* NOMBRE DEL MES */}
-              <span className={`text-xs font-bold mb-2`} style={{ color: color.text }}>
-                {item.mes}
-                {esActual && ' 🔥'}
-              </span>
+        {/* BARRAS DEL GRÁFICO */}
+        <div className="relative z-10 flex items-end justify-around h-full gap-4">
+          {todosLosMeses.map((item, idx) => {
+            const esActual = item.esActual || false;
+            const altura = maxEscala > 0 ? (item.facturado / maxEscala) * 100 : 0;
+            const color = colores[item.mes] || colores['Agosto'];
+            
+            const alturaProyeccion = esActual && maxEscala > 0 ? (actual.proyeccion / maxEscala) * 100 : 0;
+            const cabeTextoAdentro = altura > 22;
 
-              {/* CONTENEDOR DE BARRAS */}
-              <div className="relative w-full flex flex-col items-center justify-end h-44">
-                {/* BARRA DE PROYECCIÓN (solo para agosto) */}
-                {esActual && (
+            return (
+              <div key={idx} className="flex-1 flex flex-col items-center max-w-[120px] h-full justify-end">
+                {/* NOMBRE DEL MES */}
+                <span className="text-base font-bold mb-2" style={{ color: color.text }}>
+                  {item.mes}
+                  {esActual && ' 🔥'}
+                </span>
+
+                {/* CONTENEDOR DE BARRAS */}
+                <div className="relative w-full flex flex-col items-center justify-end h-44">
+                  
+                  {/* BARRA DE PROYECCIÓN (SOLO AGOSTO) */}
+                  {esActual && actual.proyeccion > 0 && (
+                    <div 
+                      className="absolute w-full max-w-[60px] rounded-t-lg"
+                      style={{ 
+                        height: `${Math.max(alturaProyeccion, 2)}%`,
+                        minHeight: '4px',
+                        backgroundColor: color.bgLight,
+                        border: `1px dashed ${color.bg}`,
+                        bottom: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                      }}
+                    >
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-bold text-emerald-400/70 whitespace-nowrap">
+                        Proy. {formatearK(actual.proyeccion)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* BARRA PRINCIPAL */}
                   <div 
-                    className="absolute w-full max-w-[60px] rounded-t-lg"
+                    className="w-full max-w-[60px] rounded-t-lg transition-all duration-1000 relative"
                     style={{ 
-                      height: `${Math.max(alturaProyeccion, 2)}%`,
+                      height: `${Math.max(altura, 2)}%`,
                       minHeight: '4px',
-                      backgroundColor: color.bgLight,
-                      border: `1px dashed ${color.bg}`,
-                      bottom: 0,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
+                      backgroundColor: color.bg,
+                      opacity: esActual ? 1 : 0.85,
+                      zIndex: 10,
                     }}
                   >
-                    {/* ETIQUETA PROYECCIÓN */}
-                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-emerald-400/70 whitespace-nowrap">
-                      Proy. {formatearK(actual.proyeccion)}
-                    </span>
+                    {/* VALOR SI CABE ADENTRO */}
+                    {cabeTextoAdentro && (
+                      <span 
+                        className="absolute inset-0 flex items-center justify-center text-[15px] font-black text-white drop-shadow-lg"
+                        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+                      >
+                        {formatearK(item.facturado)}
+                      </span>
+                    )}
+
+                    {/* VALOR SI NO CABE ADENTRO (POSICIONADO JUSTO ARRIBA DE LA BARRA COLOR) */}
+                    {!cabeTextoAdentro && (
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[15px] font-bold text-slate-200 whitespace-nowrap">
+                        {formatearK(item.facturado)}
+                      </span>
+                    )}
                   </div>
-                )}
 
-                {/* BARRA PRINCIPAL */}
-                <div 
-                  className="w-full max-w-[60px] rounded-t-lg transition-all duration-1000 relative"
-                  style={{ 
-                    height: `${Math.max(altura, 2)}%`,
-                    minHeight: '4px',
-                    backgroundColor: color.bg,
-                    opacity: esActual ? 1 : 0.85,
-                    zIndex: 10,
-                  }}
-                >
-                  {/* VALOR DENTRO DE LA BARRA (centrado) */}
-                  <span 
-                    className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-lg"
-                    style={{ 
-                      textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                      fontSize: altura > 25 ? '11px' : '0px',
-                    }}
-                  >
-                    {altura > 25 && formatearK(item.facturado)}
-                  </span>
                 </div>
-
-                {/* VALOR FUERA DE LA BARRA (si es muy pequeña) */}
-                {altura <= 25 && (
-                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-200 whitespace-nowrap">
-                    {formatearK(item.facturado)}
-                  </span>
-                )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-
-    
     </div>
   );
 }

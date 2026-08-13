@@ -17,7 +17,8 @@ export default function MesModule({
   datos, 
   esActivo,
   ultimaActualizacion,
-  datosCliengo
+  datosCliengo,
+  datosPorMes = {} // 👈 Recibimos todos los meses cargados desde el Drive
 }) {
   const { totalAcumulado, totalMeta, ritmoDiarioGlobalRequerido, ritmoDiarioGlobalActualCelda, diaDeVenta } = datos.globales || {};
   const canalesActivos = datos.canales || [];
@@ -33,30 +34,6 @@ export default function MesModule({
   const proyeccionFinalMes = promedioRealPorDia * diasTotalesMes;
   const brechaMetaFinal = proyeccionFinalMes - totalMeta;
   const seAlcanzaObjetivo = brechaMetaFinal >= 0;
-
-  // Datos históricos de ejemplo (se pueden reemplazar con datos reales del drive)
-  const datosHistoricos = [
-    { 
-      mes: 'Junio', 
-      total: 45200000,
-      canales: {
-        'WEB': 8500000,
-        'MERCADO LIBRE': 22000000,
-        'BAPRO': 5200000,
-        'VENTA TELEFÓNICA': 9500000
-      }
-    },
-    { 
-      mes: 'Julio', 
-      total: 68200000,
-      canales: {
-        'WEB': 12000000,
-        'MERCADO LIBRE': 32000000,
-        'BAPRO': 8200000,
-        'VENTA TELEFÓNICA': 16000000
-      }
-    },
-  ];
 
   return (
     <div className="space-y-8">
@@ -101,12 +78,13 @@ export default function MesModule({
         </div>
       </section>
 
-      {/* 📈 GRÁFICO DE EVOLUCIÓN MENSUAL POR CANAL */}
+      {/* 📈 GRÁFICO DE EVOLUCIÓN MENSUAL */}
       {esActivo && (
         <GraficoEvolucionMensual 
           mesActual={mes}
           datosActuales={datos}
-          datosHistoricos={datosHistoricos}
+          proyeccionFinalMes={proyeccionFinalMes}
+          datosPorMes={datosPorMes}
         />
       )}
 
@@ -179,8 +157,6 @@ export default function MesModule({
         )}
       </section>
 
-      
-
       {/* TARJETAS DE ENFOQUE POR CANAL */}
       <section>
         <div className="mb-6">
@@ -200,7 +176,6 @@ export default function MesModule({
             const ticketProm = limpiarNumero(c["ticket promedio"]);
             const visitas = limpiarNumero(c.Visitas);
             
-            // 🔥 NUEVOS CAMPOS
             const margen = c.margen || 0;
             const litros = c.litros || 0;
             const faltaFacturar = c.faltaFacturar || 0;
@@ -302,7 +277,7 @@ export default function MesModule({
                     </div>
                   </div>
 
-                  {/* 📊 NUEVAS MÉTRICAS: Margen y Litros */}
+                  {/* MÉTRICAS: Margen y Litros */}
                   <div className="grid grid-cols-2 gap-2 mb-4 border-b border-slate-800/60 pb-3.5">
                     <div className="bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
                       <span className="text-slate-400 block mb-0.5 text-[10px] font-semibold">💰 Margen</span>
@@ -329,7 +304,6 @@ export default function MesModule({
                       <span className="font-black text-purple-300">{participacionTotal}% del total</span>
                     </div>
                     
-                    {/* 🔥 Falta facturar */}
                     {faltaFacturar !== 0 && (
                       <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
                         <span className="text-slate-400 font-medium">Falta facturar:</span>
@@ -340,7 +314,7 @@ export default function MesModule({
                       </div>
                     )}
                     
-                    {/* 👥 VENDEDORES (SOLO PARA VENTA TELEFÓNICA) */}
+                    {/* VENDEDORES (SOLO PARA VENTA TELEFÓNICA) */}
                     {esVentaTelefonica && vendedores.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-800/60">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
@@ -385,7 +359,7 @@ export default function MesModule({
         </div>
       </section>
 
-      {/* 📊 MÓDULO CLIENGO - Debajo de las 4 tarjetas */}
+      {/* 📊 MÓDULO CLIENGO */}
       {esActivo && datosCliengo && (
         <ResumenEjecutivo 
           datosCliengo={datosCliengo} 

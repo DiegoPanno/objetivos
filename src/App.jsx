@@ -103,7 +103,7 @@ export default function App() {
         });
       }
 
-      // --- C. ORIGEN DE CONVERSACIONES (INCLUYE "WhatsApp - Sitio Web") ---
+      // --- C. ORIGEN DE CONVERSACIONES ---
       if (leyendoOrigen) {
         const origenesPosibles = ['WhatsApp - Sitio Web', 'WhatsApp - Sit', 'Instagram', 'Manual / Otro'];
         cols.forEach((col, idx) => {
@@ -117,7 +117,6 @@ export default function App() {
             const cantidad = cantCelda ? limpiarNumero(cantCelda) : 0;
             const porcentaje = porcCelda ? limpiarNumero(porcCelda) : 0;
 
-            // Normalizar el nombre para que siempre muestre completo "WhatsApp - Sitio Web"
             const nombreNormalizado = origenEncontrado.toLowerCase().includes('whatsapp') 
               ? 'WhatsApp - Sitio Web' 
               : origenEncontrado;
@@ -433,6 +432,7 @@ export default function App() {
           esActivo={mesActual.esActivo}
           ultimaActualizacion={ultimaActualizacion}
           datosCliengo={datosCliengo}
+          datosPorMes={datosPorMes}
         />
       </main>
 

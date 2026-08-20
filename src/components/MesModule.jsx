@@ -3,7 +3,7 @@ import React from 'react';
 import ResumenEjecutivo from './ResumenEjecutivo';
 import GraficoEvolucionMensual from './GraficoEvolucionMensual';
 
-// Helper para limpiar números (por si acaso)
+// Helper para limpiar números
 const limpiarNumero = (valor) => {
   if (!valor) return 0;
   if (typeof valor === 'number') return valor;
@@ -18,11 +18,28 @@ export default function MesModule({
   esActivo,
   ultimaActualizacion,
   datosCliengo,
-  datosPorMes = {} // 👈 Recibimos todos los meses cargados desde el Drive
+  datosPorMes = {} 
 }) {
-  const { totalAcumulado, totalMeta, ritmoDiarioGlobalRequerido, ritmoDiarioGlobalActualCelda, diaDeVenta } = datos.globales || {};
+  const { 
+    totalAcumulado, 
+    totalMeta, 
+    ritmoDiarioGlobalRequerido, 
+    ritmoDiarioGlobalActualCelda, 
+    diaDeVenta 
+  } = datos.globales || {};
+
   const canalesActivos = datos.canales || [];
   const diasTotalesMes = mes?.dias || 31;
+
+  // 1. Calculamos la suma directa de los 4 canales de la tabla (233 + 2738 + 341 + 1673 = 4985)
+  const sumaLitrosCanales = canalesActivos
+    .filter(c => ['web', 'MERCADO LIBRE', 'BAPRO', 'Vta.Telefono.', 'vtatel'].includes(c.canal) || c.id)
+    .reduce((acc, c) => acc + limpiarNumero(c.litros), 0);
+
+  // 2. Usamos el valor global de H10 si existe y no es cero; si no, usamos la suma calculada
+  const totalLitrosFinal = (datos.globales?.totalLitros && limpiarNumero(datos.globales.totalLitros) > 0)
+    ? limpiarNumero(datos.globales.totalLitros)
+    : sumaLitrosCanales;
 
   const porcentajeGlobal = totalMeta > 0 ? ((totalAcumulado / totalMeta) * 100).toFixed(1) : 0;
   const porcentajeDiarioAlcanzado = ritmoDiarioGlobalRequerido > 0 ? (ritmoDiarioGlobalActualCelda / ritmoDiarioGlobalRequerido) * 100 : 0;
@@ -109,7 +126,8 @@ export default function MesModule({
           ></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800 text-sm sm:text-base">
+        {/* MÉTRICAS PRINCIPALES */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t border-slate-800 text-sm sm:text-base">
           <div>
             <span className="text-xs sm:text-sm text-slate-400 block mb-0.5 font-medium">Total Facturado</span>
             <span className="text-2xl font-black text-slate-100">${totalAcumulado?.toLocaleString('es-AR') || 0}</span>
@@ -117,6 +135,12 @@ export default function MesModule({
           <div>
             <span className="text-xs sm:text-sm text-slate-400 block mb-0.5 font-medium">Meta Mensual</span>
             <span className="text-2xl font-black text-slate-300">${totalMeta?.toLocaleString('es-AR') || 0}</span>
+          </div>
+          <div>
+            <span className="text-xs sm:text-sm text-slate-400 block mb-0.5 font-medium">📦 Total Litros (4 Canales)</span>
+            <span className="text-2xl font-black text-cyan-400">
+              {totalLitrosFinal.toLocaleString('es-AR', { maximumFractionDigits: 0 })} L
+            </span>
           </div>
         </div>
 

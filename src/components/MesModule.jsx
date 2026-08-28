@@ -304,7 +304,7 @@ export default function MesModule({
                   {/* MÉTRICAS: Margen y Litros */}
                   <div className="grid grid-cols-2 gap-2 mb-4 border-b border-slate-800/60 pb-3.5">
                     <div className="bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
-                      <span className="text-slate-400 block mb-0.5 text-[10px] font-semibold">💰 Margen</span>
+                      <span className="text-slate-400 block mb-0.5 text-[10px] font-semibold">💰 Margen Bruto</span>
                       <span className="font-black text-sm text-slate-100">
                         ${margen.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                       </span>

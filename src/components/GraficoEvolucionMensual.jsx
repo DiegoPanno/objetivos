@@ -7,21 +7,23 @@ export default function GraficoEvolucionMensual({
   proyeccionFinalMes,
   datosPorMes = {}
 }) {
-  // 1. Extraemos acumulados históricos o fallback
+  // 1. Extraemos acumulados históricos
   const facturadoJunio = datosPorMes['junio']?.globales?.totalAcumulado || 35748934;
   const facturadoJulio = datosPorMes['julio']?.globales?.totalAcumulado || 46013841;
+  const facturadoAgosto = datosPorMes['agosto']?.globales?.totalAcumulado || 68617089;
 
   const historicos = [
     { mes: 'Junio', facturado: facturadoJunio },
     { mes: 'Julio', facturado: facturadoJulio },
+    { mes: 'Agosto', facturado: facturadoAgosto },
   ];
 
-  // 2. Datos reales y proyección de Agosto
+  // 2. Datos reales y proyección del mes en curso (Septiembre)
   const acumuladoActual = datosActuales?.globales?.totalAcumulado || datosActuales?.totalAcumulado || 0;
   const proyeccion = proyeccionFinalMes || 0;
 
   const actual = {
-    mes: mesActual?.label ? mesActual.label.split(' ')[0] : 'Agosto',
+    mes: mesActual?.label ? mesActual.label.split(' ')[0] : 'Septiembre',
     acumulado: acumuladoActual,
     proyeccion: proyeccion,
   };
@@ -52,7 +54,8 @@ export default function GraficoEvolucionMensual({
   const colores = {
     'Junio': { bg: '#3b82f6', bgLight: '#3b82f640', text: '#60a5fa' },
     'Julio': { bg: '#06b6d4', bgLight: '#06b6d440', text: '#22d3ee' },
-    'Agosto': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
+    'Agosto': { bg: '#8b5cf6', bgLight: '#8b5cf640', text: '#a78bfa' },
+    'Septiembre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
   };
 
   return (
@@ -62,8 +65,7 @@ export default function GraficoEvolucionMensual({
       </h3>
 
       <div className="relative h-60 px-2">
-        
-        {/* LÍNEAS DE GRILLA HORIZONTALES UNIFORMES */}
+        {/* LÍNEAS DE GRILLA HORIZONTALES */}
         <div className="absolute inset-x-0 bottom-0 h-44 flex flex-col justify-between pointer-events-none z-0">
           {Array.from({ length: divisiones + 1 }).map((_, idx) => (
             <div 
@@ -78,7 +80,7 @@ export default function GraficoEvolucionMensual({
           {todosLosMeses.map((item, idx) => {
             const esActual = item.esActual || false;
             const altura = maxEscala > 0 ? (item.facturado / maxEscala) * 100 : 0;
-            const color = colores[item.mes] || colores['Agosto'];
+            const color = colores[item.mes] || colores['Septiembre'];
             
             const alturaProyeccion = esActual && maxEscala > 0 ? (actual.proyeccion / maxEscala) * 100 : 0;
             const cabeTextoAdentro = altura > 22;
@@ -93,8 +95,7 @@ export default function GraficoEvolucionMensual({
 
                 {/* CONTENEDOR DE BARRAS */}
                 <div className="relative w-full flex flex-col items-center justify-end h-44">
-                  
-                  {/* BARRA DE PROYECCIÓN (SOLO AGOSTO) */}
+                  {/* BARRA DE PROYECCIÓN (SOLO MES ACTUAL) */}
                   {esActual && actual.proyeccion > 0 && (
                     <div 
                       className="absolute w-full max-w-[60px] rounded-t-lg"
@@ -135,14 +136,13 @@ export default function GraficoEvolucionMensual({
                       </span>
                     )}
 
-                    {/* VALOR SI NO CABE ADENTRO (POSICIONADO JUSTO ARRIBA DE LA BARRA COLOR) */}
+                    {/* VALOR SI NO CABE ADENTRO */}
                     {!cabeTextoAdentro && (
                       <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[15px] font-bold text-slate-200 whitespace-nowrap">
                         {formatearK(item.facturado)}
                       </span>
                     )}
                   </div>
-
                 </div>
               </div>
             );

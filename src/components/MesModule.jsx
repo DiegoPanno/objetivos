@@ -383,13 +383,13 @@ export default function MesModule({
         </div>
       </section>
 
-      {/* 📊 MÓDULO CLIENGO */}
-      {esActivo && datosCliengo && (
-        <ResumenEjecutivo 
-          datosCliengo={datosCliengo} 
-          mesLabel={mes?.label || ''}
-        />
-      )}
+     {/* 📊 MÓDULO CLIENGO (Se muestra tanto en el mes activo como en históricos si tienen datos) */}
+{datosCliengo && (
+  <ResumenEjecutivo 
+    datosCliengo={datosCliengo} 
+    mesLabel={mes?.label || ''}
+  />
+)}
 
       {esActivo && !datosCliengo && (
         <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">

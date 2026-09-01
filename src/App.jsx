@@ -4,13 +4,13 @@ import { URLS, MESES_DISPONIBLES } from './data/urls';
 import MesModule from './components/MesModule';
 
 export default function App() {
-  const [mesSeleccionado, setMesSeleccionado] = useState('agosto');
+  const [mesSeleccionado, setMesSeleccionado] = useState('septiembre');
   const [datosPorMes, setDatosPorMes] = useState({});
   const [cargando, setCargando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
-  const [datosCliengo, setDatosCliengo] = useState(null);
+  const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
 
   const limpiarNumero = (valor) => {
     if (!valor) return 0;
@@ -149,7 +149,8 @@ export default function App() {
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
-    const mesesACargar = [...MESES_DISPONIBLES, 'funnel_agosto'];
+    // Lista de meses y los dos funnels para mantener historial
+    const mesesACargar = [...MESES_DISPONIBLES, 'funnel_agosto', 'funnel_septiembre'];
     
     const promesas = mesesACargar.map(clave => {
       const url = URLS[clave]?.url;
@@ -167,8 +168,8 @@ export default function App() {
     Promise.all(promesas)
       .then(resultados => {
         const nuevosDatos = {};
+        const nuevosCliengo = {};
         let huboError = false;
-        let cliengoData = null;
 
         resultados.forEach(({ clave, csv, error }) => {
           if (error) {
@@ -177,16 +178,19 @@ export default function App() {
             return;
           }
           
-          if (clave === 'funnel_agosto') {
-            cliengoData = procesarCliengoDesdeCSV(csv);
+          // Guardar funnels por mes dinámicamente
+          if (clave.startsWith('funnel_')) {
+            const nombreMes = clave.replace('funnel_', '');
+            nuevosCliengo[nombreMes] = procesarCliengoDesdeCSV(csv);
             return;
           }
           
-          const diasDelMes = URLS[clave]?.dias || 31;
+          const diasDelMes = URLS[clave]?.dias || 30;
           nuevosDatos[clave] = procesarMes(csv, diasDelMes);
         });
 
-        setDatosCliengo(cliengoData);
+        setDatosCliengoPorMes(nuevosCliengo);
+        setDatosPorMes(nuevosDatos);
 
         if (huboError) {
           setError('Algunos datos no pudieron cargarse correctamente');
@@ -194,7 +198,6 @@ export default function App() {
           setError(null);
         }
 
-        setDatosPorMes(nuevosDatos);
         setCargando(false);
         setSincronizando(false);
         
@@ -216,6 +219,8 @@ export default function App() {
 
   const procesarMes = (csvText, diasDelMes) => {
     const lineas = csvText.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lineas.length === 0) return { canales: [], vendedores: [], globales: {} };
+
     const cabeceras = lineas[0].split(",").map(c => c.replace("\r", "").trim());
     
     const filas = lineas.slice(1).map((linea) => {
@@ -230,96 +235,72 @@ export default function App() {
     const CANALES_PERMITIDOS = [
       'web', 
       'meli', 
+      'mercado libre',
       'bapro', 
       'vtatel',
-      'Vta.Telefono.',
-      'MERCADO LIBRE',
-      'BAPRO',
-      'WEB'
+      'vta.telefono.',
+      'vta.telefono',
+      'venta telefonica',
+      'telefónica'
     ];
 
+    // 1. Filtrar los 4 canales principales (búsqueda robusta)
     const canalesPrincipales = filas.filter(f => {
-      const canal = f.canal?.trim() || '';
-      const id = f.id?.trim() || '';
+      const canal = (f.canal || '').trim().toLowerCase();
+      const id = (f.id || '').trim().toLowerCase();
       
-      const esCanalPermitido = CANALES_PERMITIDOS.some(permitido => 
-        canal.toLowerCase().includes(permitido.toLowerCase()) ||
-        id.toLowerCase().includes(permitido.toLowerCase())
+      const esCanalValido = CANALES_PERMITIDOS.some(permitido => 
+        canal.includes(permitido) || id.includes(permitido)
       );
       
       const esExcluido = 
-        canal === 'Ritmo Actual' ||
-        canal === 'Ritmo Actual de...' ||
-        canal.includes('Ritmo') ||
-        canal === 'Ranking' ||
-        canal === '15/07/2026' ||
-        /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(canal) ||
-        canal === 'Gabriela' ||
-        canal === 'Iván' ||
-        canal === 'Ivan' ||
-        canal.includes('CONVERSACIONES') ||
-        canal.includes('LEADS') ||
-        canal.includes('Etapa') ||
-        canal.includes('Asesor') ||
-        canal.includes('ORIGEN') ||
-        canal === 'Resumen por etapa del embudo' ||
-        canal === 'Desempeño por asesor' ||
-        canal === 'Origen de entrada de conversación' ||
-        id === 'total' ||
-        id === 'Ritmo Actual' ||
-        id === 'Ranking';
+        canal.includes('ritmo') ||
+        canal.includes('ranking') ||
+        canal.includes('total') ||
+        canal === 'gabriela' ||
+        canal === 'iván' ||
+        canal === 'ivan' ||
+        canal.includes('conversaciones') ||
+        canal.includes('leads') ||
+        canal.includes('etapa') ||
+        canal.includes('asesor') ||
+        canal.includes('origen') ||
+        /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(canal);
 
-      return esCanalPermitido && !esExcluido;
+      return esCanalValido && !esExcluido;
     });
 
-    let canalesFinal = canalesPrincipales;
-    if (canalesPrincipales.length === 0) {
-      canalesFinal = filas.filter(f => {
-        const canal = f.canal?.trim() || '';
-        const esVacio = canal === '';
-        const esTotal = canal === 'Ritmo Actual' || canal === 'Ritmo Actual de...' || canal.includes('Ritmo');
-        const esFecha = /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(canal);
-        const esVendedor = canal === 'Gabriela' || canal === 'Iván' || canal === 'Ivan';
-        const esIdNoDeseado = f.id === 'total' || f.id === 'Ritmo Actual' || f.id === 'Ranking';
-        const esCliengo = canal.includes('CONVERSACIONES') || canal.includes('LEADS') || 
-                          canal.includes('Etapa') || canal.includes('Asesor') || 
-                          canal.includes('ORIGEN') || canal === 'Resumen por etapa del embudo' ||
-                          canal === 'Desempeño por asesor' || canal === 'Origen de entrada de conversación';
-        
-        const tieneRequerido = f.requeridodiario && f.requeridodiario !== '';
-        const tieneMeta = f.meta && f.meta !== '';
-        
-        return !esVacio && 
-               !esTotal && 
-               !esFecha && 
-               !esVendedor && 
-               !esIdNoDeseado &&
-               !esCliengo &&
-               (tieneRequerido || tieneMeta);
-      });
-      canalesFinal = canalesFinal.slice(0, 4);
-    }
-
+    // 2. Extraer vendedores de venta telefónica
     const vendedores = filas.filter(f => {
-      const canal = f.canal?.trim() || '';
-      return canal === 'Gabriela' || canal === 'Iván' || canal === 'Ivan';
+      const canal = (f.canal || '').trim().toLowerCase();
+      return canal === 'gabriela' || canal === 'iván' || canal === 'ivan';
     });
 
-    const canalesConVendedores = canalesFinal.map(canal => {
-      const esVentaTelefonica = canal.canal?.toLowerCase().includes('vta.telefono') || 
-                                canal.canal?.toLowerCase().includes('telefónica') ||
-                                canal.canal?.toLowerCase() === 'vtatel';
+    // 3. Normalizar canales
+    const canalesConVendedores = canalesPrincipales.map(canal => {
+      const canalTexto = (canal.canal || '').toLowerCase();
+      const esVentaTelefonica = canalTexto.includes('vta.telefono') || 
+                                canalTexto.includes('telefónica') ||
+                                canalTexto.includes('vtatel');
       
-      if (esVentaTelefonica) {
-        return {
-          ...canal,
-          vendedores: vendedores.map(v => ({
-            nombre: v.canal,
-            acumulado: v.acumulado || '0',
-          })),
-        };
-      }
-      return canal;
+      return {
+        ...canal,
+        canal: canal.canal || canal.id || '',
+        acumulado: canal.acumulado || '0',
+        meta: canal.meta || canal["Objetivo del mes"] || canal["objetivo del mes"] || '0',
+        actualdiario: canal.actualdiario || '0',
+        requeridodiario: canal.requeridodiario || '0',
+        litros: canal.litros || '0',
+        margen: canal.margen || '0',
+        Visitas: canal.Visitas || canal.visitas || '0',
+        Pedidos: canal.Pedidos || canal.pedidos || '0',
+        "ticket promedio": canal["ticket promedio"] || canal["ticket promedic"] || '0',
+        faltaFacturar: canal.faltaFacturar || canal.falta_facturar || 0,
+        vendedores: esVentaTelefonica ? vendedores.map(v => ({
+          nombre: v.canal,
+          acumulado: v.acumulado || '0',
+        })) : []
+      };
     });
 
     let totalAcumulado = 0;
@@ -327,22 +308,20 @@ export default function App() {
     let totalActualDiario = 0;
     let diaDeVenta = 1;
 
-    canalesFinal.forEach(c => {
-      const acum = limpiarNumero(c.acumulado);
-      const meta = limpiarNumero(c.meta || c["Objetivo del mes"]);
-      const actualDiario = limpiarNumero(c.actualdiario);
-      
-      totalAcumulado += acum;
-      totalMeta += meta;
-      totalActualDiario += actualDiario;
-      
-      if (c["día de venta"]) {
-        const diaRaw = String(c["día de venta"]).trim();
-        const diaNumero = parseInt(diaRaw.replace(/[^0-9]/g, ''), 10);
+    filas.forEach(c => {
+      const diaRaw = c["día de venta"] || c["dia de venta"] || c["Dia de venta"];
+      if (diaRaw) {
+        const diaNumero = parseInt(String(diaRaw).replace(/[^0-9]/g, ''), 10);
         if (!isNaN(diaNumero) && diaNumero > 0) {
           diaDeVenta = diaNumero;
         }
       }
+    });
+
+    canalesConVendedores.forEach(c => {
+      totalAcumulado += limpiarNumero(c.acumulado);
+      totalMeta += limpiarNumero(c.meta);
+      totalActualDiario += limpiarNumero(c.actualdiario);
     });
 
     const metaDiariaRequerida = diasDelMes > 0 ? totalMeta / diasDelMes : 0;
@@ -431,7 +410,7 @@ export default function App() {
           datos={datosActuales}
           esActivo={mesActual.esActivo}
           ultimaActualizacion={ultimaActualizacion}
-          datosCliengo={datosCliengo}
+          datosCliengo={datosCliengoPorMes[mesSeleccionado] || null}
           datosPorMes={datosPorMes}
         />
       </main>

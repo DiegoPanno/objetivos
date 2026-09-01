@@ -3,13 +3,15 @@ import React from 'react';
 import ResumenEjecutivo from './ResumenEjecutivo';
 import GraficoEvolucionMensual from './GraficoEvolucionMensual';
 
-// Helper para limpiar números
 const limpiarNumero = (valor) => {
-  if (!valor) return 0;
+  if (!valor && valor !== 0) return 0;
   if (typeof valor === 'number') return valor;
-  const limpio = String(valor).replace(/\$/g, '').replace(/\./g, '').replace(/\s/g, '').trim();
+  const texto = String(valor).trim();
+  const esNegativo = texto.startsWith('-') || texto.includes('(');
+  const limpio = texto.replace(/[^0-9]/g, '');
   const numero = Number(limpio);
-  return isNaN(numero) ? 0 : numero;
+  if (isNaN(numero)) return 0;
+  return esNegativo ? -numero : numero;
 };
 
 export default function MesModule({ 
@@ -21,22 +23,19 @@ export default function MesModule({
   datosPorMes = {} 
 }) {
   const { 
-    totalAcumulado, 
-    totalMeta, 
-    ritmoDiarioGlobalRequerido, 
-    ritmoDiarioGlobalActualCelda, 
-    diaDeVenta 
+    totalAcumulado = 0, 
+    totalMeta = 0, 
+    ritmoDiarioGlobalRequerido = 0, 
+    ritmoDiarioGlobalActualCelda = 0, 
+    diaDeVenta = 1 
   } = datos.globales || {};
 
   const canalesActivos = datos.canales || [];
-  const diasTotalesMes = mes?.dias || 31;
+  const diasTotalesMes = mes?.dias || 30;
 
-  // 1. Calculamos la suma directa de los 4 canales de la tabla (233 + 2738 + 341 + 1673 = 4985)
-  const sumaLitrosCanales = canalesActivos
-    .filter(c => ['web', 'MERCADO LIBRE', 'BAPRO', 'Vta.Telefono.', 'vtatel'].includes(c.canal) || c.id)
-    .reduce((acc, c) => acc + limpiarNumero(c.litros), 0);
+  // Suma directa de litros de los canales
+  const sumaLitrosCanales = canalesActivos.reduce((acc, c) => acc + limpiarNumero(c.litros), 0);
 
-  // 2. Usamos el valor global de H10 si existe y no es cero; si no, usamos la suma calculada
   const totalLitrosFinal = (datos.globales?.totalLitros && limpiarNumero(datos.globales.totalLitros) > 0)
     ? limpiarNumero(datos.globales.totalLitros)
     : sumaLitrosCanales;
@@ -145,31 +144,17 @@ export default function MesModule({
         </div>
 
         {esActivo && (
-          <div className={`p-4 rounded-xl border text-xs sm:text-sm font-semibold ${diaDeVenta > 3 ? (seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400' : 'bg-rose-500/5 border-rose-500/10 text-rose-400') : 'bg-slate-800/30 border-slate-700/30 text-slate-300'}`}>
+          <div className={`p-4 rounded-xl border text-xs sm:text-sm font-semibold ${seAlcanzaObjetivo ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400' : 'bg-rose-500/5 border-rose-500/10 text-rose-400'}`}>
             <span className="text-slate-400 font-normal uppercase text-xs tracking-wide block mb-1">
-              {diaDeVenta <= 3 
-                ? `📊 Datos iniciales (Día ${diaDeVenta || 0}/${diasTotalesMes}) - La proyección se mostrará a partir del día 3` 
-                : `Proyectado según facturación actual (Día ${diaDeVenta || 0}/${diasTotalesMes}):`
-              }
+              Proyectado según facturación actual (Día {diaDeVenta || 1}/{diasTotalesMes}):
             </span>
-            {diaDeVenta > 3 ? (
-              <>
-                <span className="text-base sm:text-lg font-black text-white mr-2">
-                  ${proyeccionFinalMes?.toLocaleString('es-AR', {maximumFractionDigits:0}) || 0}
-                </span>
-                {seAlcanzaObjetivo 
-                  ? `🟢 ¡Superando la meta por +$${brechaMetaFinal?.toLocaleString('es-AR', {maximumFractionDigits:0}) || 0}!`
-                  : `⚠️ Nos quedaríamos cortos por -$${Math.abs(brechaMetaFinal || 0).toLocaleString('es-AR', {maximumFractionDigits:0})}`
-                }
-              </>
-            ) : (
-              <span className="text-slate-400">
-                ⏳ Esperando más datos para proyectar con precisión.
-                <span className="block text-xs text-slate-500 mt-1">
-                  Acumulado actual: ${totalAcumulado?.toLocaleString('es-AR') || 0} (día {diaDeVenta || 0})
-                </span>
-              </span>
-            )}
+            <span className="text-base sm:text-lg font-black text-white mr-2">
+              ${proyeccionFinalMes?.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || 0}
+            </span>
+            {seAlcanzaObjetivo 
+              ? `🟢 ¡Superando la meta por +$${brechaMetaFinal?.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || 0}!`
+              : `⚠️ Nos quedaríamos cortos por -$${Math.abs(brechaMetaFinal || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
+            }
           </div>
         )}
 
@@ -200,9 +185,9 @@ export default function MesModule({
             const ticketProm = limpiarNumero(c["ticket promedio"]);
             const visitas = limpiarNumero(c.Visitas);
             
-            const margen = c.margen || 0;
-            const litros = c.litros || 0;
-            const faltaFacturar = c.faltaFacturar || 0;
+            const margen = limpiarNumero(c.margen);
+            const litros = limpiarNumero(c.litros);
+            const faltaFacturar = limpiarNumero(c.faltaFacturar);
             
             const esVentaTelefonica = c.canal?.toLowerCase().includes('vta.telefono') || 
                                       c.canal?.toLowerCase().includes('telefónica') ||
@@ -217,21 +202,6 @@ export default function MesModule({
                   venta: limpiarNumero(v.acumulado)
                 }))
                 .filter(v => v.venta > 0);
-            }
-            
-            if (esVentaTelefonica && vendedores.length === 0) {
-              canalesActivos.forEach(fila => {
-                const nombreVendedor = fila.canal?.trim();
-                if (nombreVendedor === 'Gabriela' || nombreVendedor === 'Iván' || nombreVendedor === 'Ivan') {
-                  const ventaVendedor = limpiarNumero(fila.acumulado);
-                  if (ventaVendedor > 0) {
-                    vendedores.push({
-                      nombre: nombreVendedor,
-                      venta: ventaVendedor,
-                    });
-                  }
-                }
-              });
             }
             
             vendedores.sort((a, b) => b.venta - a.venta);
@@ -317,7 +287,7 @@ export default function MesModule({
                     </div>
                   </div>
 
-                  {/* MONTO ACUMULADO Y SHARE CON VENDEDORES */}
+                  {/* MONTO ACUMULADO Y SHARE */}
                   <div className="space-y-1.5 bg-slate-950/80 p-3 rounded-xl border border-slate-850">
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-slate-400 font-semibold">Acumulado Mes:</span>
@@ -328,17 +298,15 @@ export default function MesModule({
                       <span className="font-black text-purple-300">{participacionTotal}% del total</span>
                     </div>
                     
-                    {faltaFacturar !== 0 && (
-                      <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
-                        <span className="text-slate-400 font-medium">Falta facturar:</span>
-                        <span className={`font-black ${faltaFacturar >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                          ${Math.abs(faltaFacturar).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                          {faltaFacturar < 0 && ' ✅'}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
+                      <span className="text-slate-400 font-medium">Falta facturar:</span>
+                      <span className={`font-black ${faltaFacturar < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        ${Math.abs(faltaFacturar).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        {faltaFacturar >= 0 && acum > 0 && ' ✅'}
+                      </span>
+                    </div>
                     
-                    {/* VENDEDORES (SOLO PARA VENTA TELEFÓNICA) */}
+                    {/* VENDEDORES */}
                     {esVentaTelefonica && vendedores.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-800/60">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
@@ -383,18 +351,18 @@ export default function MesModule({
         </div>
       </section>
 
-     {/* 📊 MÓDULO CLIENGO (Se muestra tanto en el mes activo como en históricos si tienen datos) */}
-{datosCliengo && (
-  <ResumenEjecutivo 
-    datosCliengo={datosCliengo} 
-    mesLabel={mes?.label || ''}
-  />
-)}
+      {/* 📊 MÓDULO CLIENGO */}
+      {datosCliengo && (
+        <ResumenEjecutivo 
+          datosCliengo={datosCliengo} 
+          mesLabel={mes?.label || ''}
+        />
+      )}
 
       {esActivo && !datosCliengo && (
         <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
           <p className="text-xs text-amber-400">
-            ⚠️ Datos de Cliengo no disponibles. Verifica que la pestaña 'funnel_agosto' esté publicada.
+            ⚠️ Datos de Cliengo no disponibles para {mes?.label || ''}. Verifica que la pestaña esté publicada.
           </p>
         </div>
       )}

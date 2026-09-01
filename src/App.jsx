@@ -13,10 +13,17 @@ export default function App() {
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
 
   const limpiarNumero = (valor) => {
-    if (!valor) return 0;
-    const limpio = String(valor).replace(/\$/g, '').replace(/\./g, '').replace(/\s/g, '').replace(/%/g, '').trim();
+    if (!valor && valor !== 0) return 0;
+    if (typeof valor === 'number') return valor;
+    
+    // Soporta valores negativos con signo de moneda, ej: "- $24.200.000" o "-$24.200.000"
+    const texto = String(valor).trim();
+    const esNegativo = texto.startsWith('-') || texto.includes('(');
+    const limpio = texto.replace(/[^0-9]/g, '');
     const numero = Number(limpio);
-    return isNaN(numero) ? 0 : numero;
+    
+    if (isNaN(numero)) return 0;
+    return esNegativo ? -numero : numero;
   };
 
   const procesarCliengoDesdeCSV = (csvText) => {
@@ -149,7 +156,6 @@ export default function App() {
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
-    // Lista de meses y los dos funnels para mantener historial
     const mesesACargar = [...MESES_DISPONIBLES, 'funnel_agosto', 'funnel_septiembre'];
     
     const promesas = mesesACargar.map(clave => {
@@ -178,7 +184,6 @@ export default function App() {
             return;
           }
           
-          // Guardar funnels por mes dinámicamente
           if (clave.startsWith('funnel_')) {
             const nombreMes = clave.replace('funnel_', '');
             nuevosCliengo[nombreMes] = procesarCliengoDesdeCSV(csv);
@@ -244,7 +249,6 @@ export default function App() {
       'telefónica'
     ];
 
-    // 1. Filtrar los 4 canales principales (búsqueda robusta)
     const canalesPrincipales = filas.filter(f => {
       const canal = (f.canal || '').trim().toLowerCase();
       const id = (f.id || '').trim().toLowerCase();
@@ -270,35 +274,42 @@ export default function App() {
       return esCanalValido && !esExcluido;
     });
 
-    // 2. Extraer vendedores de venta telefónica
     const vendedores = filas.filter(f => {
       const canal = (f.canal || '').trim().toLowerCase();
       return canal === 'gabriela' || canal === 'iván' || canal === 'ivan';
     });
 
-    // 3. Normalizar canales
     const canalesConVendedores = canalesPrincipales.map(canal => {
       const canalTexto = (canal.canal || '').toLowerCase();
       const esVentaTelefonica = canalTexto.includes('vta.telefono') || 
                                 canalTexto.includes('telefónica') ||
                                 canalTexto.includes('vtatel');
       
+      const metaNum = limpiarNumero(canal.meta || canal["Objetivo del mes"] || canal["objetivo del mes"]);
+      const acumNum = limpiarNumero(canal.acumulado);
+      
+      // Si la celda falta_facturar viene informada la limpiamos; si no, la calculamos directamente
+      const faltaFacturarRaw = canal.falta_facturar || canal.faltaFacturar || canal["falta_facturar"];
+      const faltaFacturarFinal = (faltaFacturarRaw !== undefined && faltaFacturarRaw !== '')
+        ? limpiarNumero(faltaFacturarRaw)
+        : (acumNum - metaNum);
+
       return {
         ...canal,
         canal: canal.canal || canal.id || '',
-        acumulado: canal.acumulado || '0',
-        meta: canal.meta || canal["Objetivo del mes"] || canal["objetivo del mes"] || '0',
-        actualdiario: canal.actualdiario || '0',
-        requeridodiario: canal.requeridodiario || '0',
-        litros: canal.litros || '0',
-        margen: canal.margen || '0',
-        Visitas: canal.Visitas || canal.visitas || '0',
-        Pedidos: canal.Pedidos || canal.pedidos || '0',
-        "ticket promedio": canal["ticket promedio"] || canal["ticket promedic"] || '0',
-        faltaFacturar: canal.faltaFacturar || canal.falta_facturar || 0,
+        acumulado: acumNum,
+        meta: metaNum,
+        actualdiario: limpiarNumero(canal.actualdiario),
+        requeridodiario: limpiarNumero(canal.requeridodiario),
+        litros: limpiarNumero(canal.litros),
+        margen: limpiarNumero(canal.margen),
+        Visitas: limpiarNumero(canal.Visitas || canal.visitas),
+        Pedidos: limpiarNumero(canal.Pedidos || canal.pedidos),
+        "ticket promedio": limpiarNumero(canal["ticket promedio"] || canal["ticket promedic"]),
+        faltaFacturar: faltaFacturarFinal,
         vendedores: esVentaTelefonica ? vendedores.map(v => ({
           nombre: v.canal,
-          acumulado: v.acumulado || '0',
+          acumulado: limpiarNumero(v.acumulado),
         })) : []
       };
     });
@@ -319,9 +330,9 @@ export default function App() {
     });
 
     canalesConVendedores.forEach(c => {
-      totalAcumulado += limpiarNumero(c.acumulado);
-      totalMeta += limpiarNumero(c.meta);
-      totalActualDiario += limpiarNumero(c.actualdiario);
+      totalAcumulado += c.acumulado;
+      totalMeta += c.meta;
+      totalActualDiario += c.actualdiario;
     });
 
     const metaDiariaRequerida = diasDelMes > 0 ? totalMeta / diasDelMes : 0;

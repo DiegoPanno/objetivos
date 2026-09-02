@@ -210,7 +210,10 @@ export default function MesModule({
             const cumplimientoCanal = metaCanal > 0 ? ((acum / metaCanal) * 100).toFixed(1) : 0;
             const enRitmo = diarioActual >= diarioReq;
             const brechaDiaria = diarioReq - diarioActual;
-            const participacionTotal = totalAcumulado > 0 ? ((acum / totalAcumulado) * 100).toFixed(1) : "0.0";
+
+            // Cálculos precisos de Share
+            const shareVentas = totalAcumulado > 0 ? ((acum / totalAcumulado) * 100).toFixed(1) : "0.0";
+            const shareObjetivo = totalMeta > 0 ? ((metaCanal / totalMeta) * 100).toFixed(1) : "0.0";
             
             const nombreCanalAMostrar = c.canal === "Vta.Telefono." ? "VENTA TELEFÓNICA" : 
                                          c.canal === "vtatel" ? "VENTA TELEFÓNICA" :
@@ -287,22 +290,28 @@ export default function MesModule({
                     </div>
                   </div>
 
-                  {/* MONTO ACUMULADO Y SHARE */}
+                  {/* MONTO ACUMULADO Y SHARES */}
                   <div className="space-y-1.5 bg-slate-950/80 p-3 rounded-xl border border-slate-850">
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-slate-400 font-semibold">Acumulado Mes:</span>
                       <span className="font-black text-indigo-300">${acum.toLocaleString('es-AR')}</span>
                     </div>
+                    
                     <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
-                      <span className="text-slate-400 font-medium">Share Canales:</span>
-                      <span className="font-black text-purple-300">{participacionTotal}% del total</span>
+                      <span className="text-slate-400 font-medium">Share Ventas:</span>
+                      <span className="font-black text-purple-300">{shareVentas}% del total</span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
+                      <span className="text-slate-400 font-medium">Share Objetivo:</span>
+                      <span className="font-black text-cyan-300">{shareObjetivo}% de meta</span>
                     </div>
                     
                     <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
                       <span className="text-slate-400 font-medium">Falta facturar:</span>
-                      <span className={`font-black ${faltaFacturar < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      <span className={`font-black ${faltaFacturar <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                         ${Math.abs(faltaFacturar).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                        {faltaFacturar >= 0 && acum > 0 && ' ✅'}
+                        {faltaFacturar <= 0 && acum > 0 && ' ✅'}
                       </span>
                     </div>
                     

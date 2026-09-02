@@ -286,13 +286,22 @@ export default function App() {
                                 canalTexto.includes('vtatel');
       
       const metaNum = limpiarNumero(canal.meta || canal["Objetivo del mes"] || canal["objetivo del mes"]);
-      const acumNum = limpiarNumero(canal.acumulado);
+      let acumNum = limpiarNumero(canal.acumulado);
+
+      const vendedoresCanal = esVentaTelefonica ? vendedores.map(v => ({
+        nombre: v.canal,
+        acumulado: limpiarNumero(v.acumulado),
+      })) : [];
+
+      // Si Venta Telefónica viene en 0 pero hay ventas cargadas en vendedores, tomamos la suma
+      if (esVentaTelefonica && acumNum === 0 && vendedoresCanal.length > 0) {
+        acumNum = vendedoresCanal.reduce((acc, v) => acc + v.acumulado, 0);
+      }
       
-      // Si la celda falta_facturar viene informada la limpiamos; si no, la calculamos directamente
       const faltaFacturarRaw = canal.falta_facturar || canal.faltaFacturar || canal["falta_facturar"];
       const faltaFacturarFinal = (faltaFacturarRaw !== undefined && faltaFacturarRaw !== '')
         ? limpiarNumero(faltaFacturarRaw)
-        : (acumNum - metaNum);
+        : (metaNum - acumNum);
 
       return {
         ...canal,
@@ -307,10 +316,7 @@ export default function App() {
         Pedidos: limpiarNumero(canal.Pedidos || canal.pedidos),
         "ticket promedio": limpiarNumero(canal["ticket promedio"] || canal["ticket promedic"]),
         faltaFacturar: faltaFacturarFinal,
-        vendedores: esVentaTelefonica ? vendedores.map(v => ({
-          nombre: v.canal,
-          acumulado: limpiarNumero(v.acumulado),
-        })) : []
+        vendedores: vendedoresCanal
       };
     });
 

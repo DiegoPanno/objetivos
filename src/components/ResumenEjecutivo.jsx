@@ -31,7 +31,7 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
 
   const totalVentas = ventaTelefonica + ventaSucursal + ventaWeb;
   const tasaConversion = totalLeads > 0 ? ((totalVentas / totalLeads) * 100).toFixed(1) : 0;
-  const asesoresOrdenados = [...desempenoAsesores].sort((a, b) => b.conversaciones - a.conversaciones);
+  const asesoresOrdenados = [...desempenoAsesores].sort((a, b) => (b.conversaciones || 0) - (a.conversaciones || 0));
 
   return (
     <div className="mt-8">
@@ -82,18 +82,19 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
             </span>
           </div>
         </div>
-
-        
       </div>
 
-      {/* ETAPAS Y ASESORES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* FILA DE TABLAS: ETAPAS | ASESORES | ORIGEN DE TRÁFICO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        {/* TABLA 1: ETAPAS DEL EMBUDO */}
         <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">🔄 Etapas del Embudo</h3>
           <div className="space-y-3">
             {resumenEtapas.slice(0, 8).map((etapa, idx) => {
+              const cantidad = etapa?.cantidad || 0;
               const porcentaje = totalConversaciones > 0 
-                ? ((etapa.cantidad / totalConversaciones) * 100).toFixed(1) 
+                ? ((cantidad / totalConversaciones) * 100).toFixed(1) 
                 : 0;
               const colores = [
                 'bg-emerald-500', 
@@ -106,13 +107,13 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
               return (
                 <div key={idx}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-300">{etapa.nombre}</span>
-                    <span className="text-slate-400">{etapa.cantidad} ({porcentaje}%)</span>
+                    <span className="text-slate-300">{etapa?.nombre || 'Etapa'}</span>
+                    <span className="text-slate-400">{cantidad} ({porcentaje}%)</span>
                   </div>
                   <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                     <div 
                       className={`h-full rounded-full ${colores[idx % colores.length]}`}
-                      style={{ width: `${Math.min(porcentaje, 100)}%` }}
+                      style={{ width: `${Math.min(Number(porcentaje), 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -121,25 +122,27 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
           </div>
         </div>
 
+        {/* TABLA 2: DESEMPEÑO POR ASESOR */}
         <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">👥 Desempeño por Asesor</h3>
           <div className="space-y-4">
             {asesoresOrdenados.slice(0, 4).map((asesor, idx) => {
+              const conv = asesor?.conversaciones || 0;
               const porcentaje = totalConversaciones > 0 
-                ? ((asesor.conversaciones / totalConversaciones) * 100).toFixed(1) 
+                ? ((conv / totalConversaciones) * 100).toFixed(1) 
                 : 0;
               const colores = ['bg-emerald-400', 'bg-cyan-400', 'bg-blue-400', 'bg-purple-400'];
               return (
                 <div key={idx} className="flex items-center gap-3">
                   <div className="flex-1">
                     <div className="flex justify-between text-sm mb-0.5">
-                      <span className="font-semibold text-slate-200">{asesor.nombre}</span>
-                      <span className="text-slate-400">{asesor.conversaciones} conversaciones</span>
+                      <span className="font-semibold text-slate-200">{asesor?.nombre || 'Asesor'}</span>
+                      <span className="text-slate-400">{conv} conversaciones</span>
                     </div>
                     <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                       <div 
                         className={`h-full rounded-full ${colores[idx % colores.length]}`}
-                        style={{ width: `${Math.min(porcentaje, 100)}%` }}
+                        style={{ width: `${Math.min(Number(porcentaje), 100)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -149,29 +152,74 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
             })}
           </div>
         </div>
-      </div>
 
-      {/* ORIGEN DE CONVERSACIONES */}
-      {origenConversaciones.length > 0 && (
-        <div className="mt-6 bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📱 Origen de Conversaciones</h3>
-          <div className="flex flex-wrap gap-3">
-            {origenConversaciones.map((origen, idx) => {
-              const colores = ['bg-emerald-500/20 text-emerald-400 border-emerald-500/30', 
-                               'bg-blue-500/20 text-blue-400 border-blue-500/30',
-                               'bg-amber-500/20 text-amber-400 border-amber-500/30',
-                               'bg-purple-500/20 text-purple-400 border-purple-500/30'];
-              return (
-                <div key={idx} className={`px-4 py-2 rounded-full border ${colores[idx % colores.length]}`}>
-                  <span className="text-xs font-medium">{origen.nombre}</span>
-                  <span className="text-xs font-bold ml-2">{origen.cantidad}</span>
-                  <span className="text-xs text-slate-400 ml-1">({origen.porcentaje.toFixed(0)}%)</span>
-                </div>
-              );
-            })}
+        {/* TABLA 3: ORIGEN DE TRÁFICO (ADS vs ORGÁNICO) */}
+        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 md:col-span-2 lg:col-span-1">
+          <div className="mb-4">
+            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+              🎯 ORIGEN DE TRÁFICO (ADS vs ORGÁNICO)
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Representa atribución de pauta vs orgánico
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th className="pb-2 font-semibold">Tipo de Tráfico</th>
+                  <th className="pb-2 font-semibold text-center">Cantidad</th>
+                  <th className="pb-2 font-semibold text-right">% del Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {origenConversaciones.length > 0 ? (
+                  origenConversaciones.map((row, idx) => {
+                    const textoTipo = String(row?.tipo || row?.nombre || '').trim();
+                    const tipoLower = textoTipo.toLowerCase();
+                    const cantidad = row?.cantidad ?? 0;
+                    const porcentaje = row?.porcentaje ?? 0;
+
+                    const esOrganico = tipoLower.includes('orgánico') || tipoLower.includes('organico') || tipoLower.includes('directo');
+                    const esFb = tipoLower.includes('facebook');
+                    const esIg = tipoLower.includes('instagram');
+                    const esGoogle = tipoLower.includes('google');
+
+                    let dotColor = 'bg-cyan-400';
+                    if (esOrganico) dotColor = 'bg-emerald-400';
+                    else if (esFb) dotColor = 'bg-blue-500';
+                    else if (esIg) dotColor = 'bg-pink-500';
+                    else if (esGoogle) dotColor = 'bg-amber-400';
+
+                    return (
+                      <tr key={idx} className="hover:bg-slate-800/20 transition">
+                        <td className="py-2.5 font-medium text-slate-200 flex items-center gap-2 text-xs">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`}></span>
+                          {textoTipo || 'Sin especificar'}
+                        </td>
+                        <td className="py-2.5 text-center font-bold text-slate-100 text-xs">
+                          {cantidad}
+                        </td>
+                        <td className="py-2.5 text-right font-semibold text-slate-300 text-xs">
+                          {Number(porcentaje).toFixed(2)}%
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="py-4 text-center text-xs text-slate-500">
+                      Cargando datos de tráfico...
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
+
+      </div>
     </div>
   );
 }

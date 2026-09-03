@@ -16,7 +16,6 @@ export default function App() {
     if (!valor && valor !== 0) return 0;
     if (typeof valor === 'number') return valor;
     
-    // Soporta valores negativos con signo de moneda, ej: "- $24.200.000" o "-$24.200.000"
     const texto = String(valor).trim();
     const esNegativo = texto.startsWith('-') || texto.includes('(');
     const limpio = texto.replace(/[^0-9]/g, '');
@@ -40,9 +39,9 @@ export default function App() {
 
     const resumenEtapas = [];
     const desempenoAsesores = [];
-    const origenConversaciones = [];
+    const origenTraficoAds = [];
 
-    // 1. EXTRAER TOTALES SUPERIORES
+    // 1. TOTALES SUPERIORES
     const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
     if (idxFilaCabecera !== -1 && lineas[idxFilaCabecera + 1]) {
       const filaValores = lineas[idxFilaCabecera + 1].split(',').map(v => v.trim());
@@ -56,16 +55,27 @@ export default function App() {
       ventaTelefonica = numeros[5] || 0;
     }
 
-    // 2. PARSEO POR ZONAS/BLOQUES
-    let leyendoAsesores = false;
-    let leyendoOrigen = false;
+    // 2. BUSCADOR DE ELEMENTOS DE TRÁFICO
+    const tiposTraficoBuscados = [
+      { clave: 'facebook ads', label: 'Facebook Ads' },
+      { clave: 'instagram ads', label: 'Instagram Ads' },
+      { clave: 'meta ads (sin url)', label: 'Meta Ads (Sin URL)' },
+      { clave: 'meta ads', label: 'Meta Ads (Pauta)' },
+      { clave: 'meta ads (pauta)', label: 'Meta Ads (Pauta)' },
+      { clave: 'google ads', label: 'Google Ads' },
+      { clave: 'google ads (pauta)', label: 'Google Ads' },
+      { clave: 'orgánico / directo', label: 'Orgánico / Directo' },
+      { clave: 'organico / directo', label: 'Orgánico / Directo' },
+      { clave: 'orgánico', label: 'Orgánico / Directo' },
+      { clave: 'organico', label: 'Orgánico / Directo' }
+    ];
+
+    const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
 
     lineas.forEach((linea) => {
       const cols = linea.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      const textoFila = cols.join(' ').toUpperCase();
 
       // --- A. RESUMEN POR ETAPAS ---
-      const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
       const primerCol = cols[1] || cols[0] || '';
       const nombreEtapa = etapasPosibles.find(e => e.toLowerCase() === primerCol.toLowerCase());
       
@@ -77,67 +87,48 @@ export default function App() {
       }
 
       // --- B. DESEMPEÑO POR ASESOR ---
-      if (textoFila.includes('DESEMPEÑO POR ASESOR')) {
-        leyendoAsesores = true;
-        leyendoOrigen = false;
-        return;
-      }
+      cols.forEach((col, idx) => {
+        const val = col.trim().toLowerCase();
+        if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
+          const celdasRestantes = cols.slice(idx + 1).filter(c => c !== '');
+          const conv = celdasRestantes[0] ? limpiarNumero(celdasRestantes[0]) : 0;
+          const part = celdasRestantes[1] ? limpiarNumero(celdasRestantes[1]) : 0;
 
-      if (textoFila.includes('ORIGEN DE ENTRADA')) {
-        leyendoAsesores = false;
-        leyendoOrigen = true;
-        return;
-      }
-
-      if (leyendoAsesores) {
-        cols.forEach((col, idx) => {
-          const val = col.trim();
-          if (val.toLowerCase() === 'ivan' || val.toLowerCase() === 'iván' || val.toLowerCase() === 'gabriela') {
-            const convCelda = cols.slice(idx + 1).find(c => limpiarNumero(c) > 0);
-            const partCelda = cols.slice(idx + 2).find(c => limpiarNumero(c) > 0);
-
-            const conversaciones = convCelda ? limpiarNumero(convCelda) : 0;
-            const participacion = partCelda ? limpiarNumero(partCelda) : 0;
-
-            if (!desempenoAsesores.some(a => a.nombre.toLowerCase() === val.toLowerCase())) {
-              desempenoAsesores.push({
-                nombre: val,
-                conversaciones,
-                participacion
-              });
-            }
+          if (!desempenoAsesores.some(a => a.nombre.toLowerCase() === val)) {
+            desempenoAsesores.push({
+              nombre: col.trim(),
+              conversaciones: conv,
+              participacion: part
+            });
           }
-        });
-      }
+        }
+      });
 
-      // --- C. ORIGEN DE CONVERSACIONES ---
-      if (leyendoOrigen) {
-        const origenesPosibles = ['WhatsApp - Sitio Web', 'WhatsApp - Sit', 'Instagram', 'Manual / Otro'];
-        cols.forEach((col, idx) => {
-          const val = col.trim();
-          const origenEncontrado = origenesPosibles.find(o => o.toLowerCase() === val.toLowerCase());
+      // --- C. ORIGEN DE TRÁFICO (ADS vs ORGÁNICO) ---
+      cols.forEach((col, idx) => {
+        const valCol = col.trim().toLowerCase();
+        const match = tiposTraficoBuscados.find(t => t.clave === valCol);
+
+        if (match) {
+          const celdasDerecha = cols.slice(idx + 1).filter(c => c !== '');
+          const cant = celdasDerecha[0] !== undefined ? limpiarNumero(celdasDerecha[0]) : 0;
           
-          if (origenEncontrado) {
-            const cantCelda = cols.slice(idx + 1).find(c => limpiarNumero(c) > 0);
-            const porcCelda = cols.slice(idx + 2).find(c => limpiarNumero(c) > 0);
-
-            const cantidad = cantCelda ? limpiarNumero(cantCelda) : 0;
-            const porcentaje = porcCelda ? limpiarNumero(porcCelda) : 0;
-
-            const nombreNormalizado = origenEncontrado.toLowerCase().includes('whatsapp') 
-              ? 'WhatsApp - Sitio Web' 
-              : origenEncontrado;
-
-            if (!origenConversaciones.some(o => o.nombre.toLowerCase() === nombreNormalizado.toLowerCase())) {
-              origenConversaciones.push({
-                nombre: nombreNormalizado,
-                cantidad,
-                porcentaje
-              });
-            }
+          let porc = 0;
+          if (celdasDerecha[1] && celdasDerecha[1].includes('%')) {
+            porc = parseFloat(celdasDerecha[1].replace('%', '').replace(',', '.').trim()) || 0;
+          } else if (totalConversaciones > 0) {
+            porc = (cant / totalConversaciones) * 100;
           }
-        });
-      }
+
+          if (!origenTraficoAds.some(item => item.tipo.toLowerCase() === match.label.toLowerCase())) {
+            origenTraficoAds.push({
+              tipo: match.label,
+              cantidad: cant,
+              porcentaje: porc
+            });
+          }
+        }
+      });
     });
 
     return {
@@ -149,7 +140,7 @@ export default function App() {
       ventaTelefonica,
       resumenEtapas,
       desempenoAsesores,
-      origenConversaciones
+      origenConversaciones: origenTraficoAds
     };
   };
 
@@ -240,7 +231,7 @@ export default function App() {
     const CANALES_PERMITIDOS = [
       'web', 
       'meli', 
-      'mercado libre',
+      'mercado libre', 
       'bapro', 
       'vtatel',
       'vta.telefono.',
@@ -293,7 +284,6 @@ export default function App() {
         acumulado: limpiarNumero(v.acumulado),
       })) : [];
 
-      // Si Venta Telefónica viene en 0 pero hay ventas cargadas en vendedores, tomamos la suma
       if (esVentaTelefonica && acumNum === 0 && vendedoresCanal.length > 0) {
         acumNum = vendedoresCanal.reduce((acc, v) => acc + v.acumulado, 0);
       }

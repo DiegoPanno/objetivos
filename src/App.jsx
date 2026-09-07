@@ -40,6 +40,7 @@ export default function App() {
     const resumenEtapas = [];
     const desempenoAsesores = [];
     const origenTraficoAds = [];
+    const franjasHorarias = [];
 
     // 1. TOTALES SUPERIORES
     const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
@@ -72,8 +73,24 @@ export default function App() {
 
     const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
 
+    // 3. PARSEO LÍNEA POR LÍNEA
     lineas.forEach((linea) => {
-      const cols = linea.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      // Manejar campos con comillas en CSV
+      const cols = [];
+      let actual = '';
+      let enComillas = false;
+      for (let i = 0; i < linea.length; i++) {
+        const c = linea[i];
+        if (c === '"') {
+          enComillas = !enComillas;
+        } else if (c === ',' && !enComillas) {
+          cols.push(actual.trim().replace(/^"|"$/g, ''));
+          actual = '';
+        } else {
+          actual += c;
+        }
+      }
+      cols.push(actual.trim().replace(/^"|"$/g, ''));
 
       // --- A. RESUMEN POR ETAPAS ---
       const primerCol = cols[1] || cols[0] || '';
@@ -92,7 +109,7 @@ export default function App() {
         if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
           const celdasRestantes = cols.slice(idx + 1).filter(c => c !== '');
           const conv = celdasRestantes[0] ? limpiarNumero(celdasRestantes[0]) : 0;
-          const part = celdasRestantes[1] ? limpiarNumero(celdasRestantes[1]) : 0;
+          const part = celdasRestantes[1] ? celdasRestantes[1].trim() : '0%';
 
           if (!desempenoAsesores.some(a => a.nombre.toLowerCase() === val)) {
             desempenoAsesores.push({
@@ -104,7 +121,7 @@ export default function App() {
         }
       });
 
-      // --- C. ORIGEN DE TRÁFICO (ADS vs ORGÁNICO) ---
+      // --- C. ORIGEN DE TRÁFICO Y ATRIBUCIÓN DE VENTAS ---
       cols.forEach((col, idx) => {
         const valCol = col.trim().toLowerCase();
         const match = tiposTraficoBuscados.find(t => t.clave === valCol);
@@ -120,15 +137,48 @@ export default function App() {
             porc = (cant / totalConversaciones) * 100;
           }
 
+          // Métricas adicionales de ventas y canal preferido
+          const ventas = celdasDerecha[2] !== undefined ? limpiarNumero(celdasDerecha[2]) : 0;
+          const tasaConv = celdasDerecha[3] ? celdasDerecha[3].trim() : '0,00%';
+          const canalPreferido = celdasDerecha[4] ? celdasDerecha[4].trim() : 'Sin ventas';
+
           if (!origenTraficoAds.some(item => item.tipo.toLowerCase() === match.label.toLowerCase())) {
             origenTraficoAds.push({
               tipo: match.label,
               cantidad: cant,
-              porcentaje: porc
+              porcentaje: porc,
+              ventasConcretadas: ventas,
+              tasaConversion: tasaConv,
+              canalPreferido: canalPreferido
             });
           }
         }
       });
+
+      // --- D. FRANJAS HORARIAS (08:00 a 19:00 hs y Fuera de horario) ---
+      const textoLinea = cols.join(' ');
+      const patronHorario = /(08:00 a 09:59|10:00 a 13:59|14:00 a 16:59|17:00 a 18:59|19:00 a 07:59)/i;
+      const matchHora = textoLinea.match(patronHorario);
+
+      if (matchHora) {
+        const franjaNombre = matchHora[0];
+        const idxFranja = cols.findIndex(c => patronHorario.test(c));
+        if (idxFranja !== -1) {
+          const celdasHorario = cols.slice(idxFranja + 1).filter(c => c !== '');
+          const totalEntrantes = celdasHorario[0] !== undefined ? limpiarNumero(celdasHorario[0]) : 0;
+          const ventasTel = celdasHorario[1] !== undefined ? limpiarNumero(celdasHorario[1]) : 0;
+          const pctTel = celdasHorario[2] ? celdasHorario[2].trim() : '0%';
+
+          if (!franjasHorarias.some(f => f.franja.toLowerCase() === franjaNombre.toLowerCase())) {
+            franjasHorarias.push({
+              franja: franjaNombre,
+              totalConsultas: totalEntrantes,
+              ventasTel: ventasTel,
+              pctTel: pctTel
+            });
+          }
+        }
+      }
     });
 
     return {
@@ -140,7 +190,8 @@ export default function App() {
       ventaTelefonica,
       resumenEtapas,
       desempenoAsesores,
-      origenConversaciones: origenTraficoAds
+      origenConversaciones: origenTraficoAds,
+      franjasHorarias
     };
   };
 

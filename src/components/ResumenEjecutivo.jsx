@@ -27,7 +27,8 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
     resumenEtapas = [],
     desempenoAsesores = [],
     origenConversaciones = [],
-    franjasHorarias = []
+    franjasHorarias = [],
+    dineroCliengo = { presupuestado: 0, sucursal: 0, telefonica: 0, web: 0, totalDerivado: 0 }
   } = datosCliengo;
 
   const totalVentas = ventaTelefonica + ventaSucursal + ventaWeb;
@@ -81,6 +82,73 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
             <span className="text-xs font-semibold text-blue-400">
               {totalConversaciones > 0 ? ((operadorHumano / totalConversaciones) * 100).toFixed(1) : 0}%
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 💵 IMPACTO ECONÓMICO Y DERIVACIÓN DE DINERO */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800/80 pb-3">
+          <div>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest block">
+              Impacto en Facturación
+            </span>
+            <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+              💵 Dinero Presupuestado y Derivado a Canales
+            </h3>
+          </div>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+            Total Gestionado: ${((dineroCliengo?.totalDerivado || 0) + (dineroCliengo?.presupuestado || 0)).toLocaleString('es-AR')}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+          {/* PRESUPUESTADO */}
+          <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-850">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-amber-400">Cotizado / En Cartera</span>
+              <span className="text-[10px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20 font-bold">Pipeline</span>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-white">
+              ${(dineroCliengo?.presupuestado || 0).toLocaleString('es-AR')}
+            </div>
+            <span className="text-[11px] text-slate-500 block mt-1">Presupuestos activos en seguimiento</span>
+          </div>
+
+          {/* SUCURSALES */}
+          <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-850">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-cyan-400">Derivado a Sucursales</span>
+              <span className="text-[10px] bg-cyan-400/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-400/20 font-bold">Mostrador</span>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-cyan-300">
+              ${(dineroCliengo?.sucursal || 0).toLocaleString('es-AR')}
+            </div>
+            <span className="text-[11px] text-slate-500 block mt-1">Tráfico digital cerrado en locales</span>
+          </div>
+
+          {/* VENTA TELEFÓNICA */}
+          <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-850">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-purple-400">Venta Telefónica</span>
+              <span className="text-[10px] bg-purple-400/10 text-purple-400 px-1.5 py-0.5 rounded border border-purple-400/20 font-bold">Cierres</span>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-purple-300">
+              ${(dineroCliengo?.telefonica || 0).toLocaleString('es-AR')}
+            </div>
+            <span className="text-[11px] text-slate-500 block mt-1">Cerrado por asesores del canal</span>
+          </div>
+
+          {/* VENTA WEB */}
+          <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-850">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-emerald-400">Venta Web (E-commerce)</span>
+              <span className="text-[10px] bg-emerald-400/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">Online</span>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-300">
+              ${(dineroCliengo?.web || 0).toLocaleString('es-AR')}
+            </div>
+            <span className="text-[11px] text-slate-500 block mt-1">Completados en la tienda web</span>
           </div>
         </div>
       </div>

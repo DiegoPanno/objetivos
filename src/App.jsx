@@ -26,173 +26,216 @@ export default function App() {
   };
 
   const procesarCliengoDesdeCSV = (csvText) => {
-    if (!csvText) return null;
+    try {
+      if (!csvText) return null;
 
-    const lineas = csvText.split('\n').map(l => l.replace(/\r/g, ''));
+      const lineas = csvText.split('\n').map(l => l.replace(/\r/g, ''));
 
-    let totalConversaciones = 0;
-    let totalLeads = 0;
-    let operadorHumano = 0;
-    let ventaSucursal = 0;
-    let ventaWeb = 0;
-    let ventaTelefonica = 0;
+      let totalConversaciones = 0;
+      let totalLeads = 0;
+      let operadorHumano = 0;
+      let ventaSucursal = 0;
+      let ventaWeb = 0;
+      let ventaTelefonica = 0;
 
-    const resumenEtapas = [];
-    const desempenoAsesores = [];
-    const origenTraficoAds = [];
-    const franjasHorarias = [];
+      // Métricas monetarias agregadas (Columnas G y H)
+      let dineroPresupuestado = 0;
+      let dineroSucursal = 0;
+      let dineroTelefonica = 0;
+      let dineroWeb = 0;
 
-    // 1. TOTALES SUPERIORES
-    const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
-    if (idxFilaCabecera !== -1 && lineas[idxFilaCabecera + 1]) {
-      const filaValores = lineas[idxFilaCabecera + 1].split(',').map(v => v.trim());
-      const numeros = filaValores.map(v => limpiarNumero(v)).filter(v => v > 0);
-      
-      totalConversaciones = numeros[0] || 0;
-      totalLeads = numeros[1] || 0;
-      operadorHumano = numeros[2] || 0;
-      ventaSucursal = numeros[3] || 0;
-      ventaWeb = numeros[4] || 0;
-      ventaTelefonica = numeros[5] || 0;
+      const resumenEtapas = [];
+      const desempenoAsesores = [];
+      const origenTraficoAds = [];
+      const franjasHorarias = [];
+
+      // 1. TOTALES SUPERIORES
+      const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
+      if (idxFilaCabecera !== -1 && lineas[idxFilaCabecera + 1]) {
+        const filaValores = lineas[idxFilaCabecera + 1].split(',').map(v => v.trim());
+        const numeros = filaValores.map(v => limpiarNumero(v)).filter(v => v > 0);
+        
+        totalConversaciones = numeros[0] || 0;
+        totalLeads = numeros[1] || 0;
+        operadorHumano = numeros[2] || 0;
+        ventaSucursal = numeros[3] || 0;
+        ventaWeb = numeros[4] || 0;
+        ventaTelefonica = numeros[5] || 0;
+      }
+
+      // 2. BUSCADOR DE ELEMENTOS DE TRÁFICO
+      const tiposTraficoBuscados = [
+        { clave: 'facebook ads', label: 'Facebook Ads' },
+        { clave: 'instagram ads', label: 'Instagram Ads' },
+        { clave: 'meta ads (sin url)', label: 'Meta Ads (Sin URL)' },
+        { clave: 'meta ads', label: 'Meta Ads (Pauta)' },
+        { clave: 'meta ads (pauta)', label: 'Meta Ads (Pauta)' },
+        { clave: 'google ads', label: 'Google Ads' },
+        { clave: 'google ads (pauta)', label: 'Google Ads' },
+        { clave: 'orgánico / directo', label: 'Orgánico / Directo' },
+        { clave: 'organico / directo', label: 'Orgánico / Directo' },
+        { clave: 'orgánico', label: 'Orgánico / Directo' },
+        { clave: 'organico', label: 'Orgánico / Directo' }
+      ];
+
+      const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
+
+      // 3. PARSEO LÍNEA POR LÍNEA
+      lineas.forEach((linea) => {
+        const cols = [];
+        let actual = '';
+        let enComillas = false;
+        for (let i = 0; i < linea.length; i++) {
+          const c = linea[i];
+          if (c === '"') {
+            enComillas = !enComillas;
+          } else if (c === ',' && !enComillas) {
+            cols.push(actual.trim().replace(/^"|"$/g, ''));
+            actual = '';
+          } else {
+            actual += c;
+          }
+        }
+        cols.push(actual.trim().replace(/^"|"$/g, ''));
+
+        // --- A. RESUMEN POR ETAPAS ---
+        const primerCol = cols[1] || cols[0] || '';
+        const nombreEtapa = etapasPosibles.find(e => e.toLowerCase() === primerCol.toLowerCase());
+        
+        if (nombreEtapa) {
+          const cantidad = limpiarNumero(cols[2] || cols[3]);
+          if (cantidad > 0 && !resumenEtapas.some(e => e.nombre === nombreEtapa)) {
+            resumenEtapas.push({ nombre: nombreEtapa, cantidad });
+          }
+        }
+
+        // --- B. DESEMPEÑO POR ASESOR ---
+        cols.forEach((col, idx) => {
+          const val = col.trim().toLowerCase();
+          if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
+            const celdasRestantes = cols.slice(idx + 1).filter(c => c !== '');
+            const conv = celdasRestantes[0] ? limpiarNumero(celdasRestantes[0]) : 0;
+            const part = celdasRestantes[1] ? celdasRestantes[1].trim() : '0%';
+
+            if (!desempenoAsesores.some(a => a.nombre.toLowerCase() === val)) {
+              desempenoAsesores.push({
+                nombre: col.trim(),
+                conversaciones: conv,
+                participacion: part
+              });
+            }
+          }
+        });
+
+        // --- C. ORIGEN DE TRÁFICO Y ATRIBUCIÓN DE VENTAS ---
+        cols.forEach((col, idx) => {
+          const valCol = col.trim().toLowerCase();
+          const match = tiposTraficoBuscados.find(t => t.clave === valCol);
+
+          if (match) {
+            const celdasDerecha = cols.slice(idx + 1).filter(c => c !== '');
+            const cant = celdasDerecha[0] !== undefined ? limpiarNumero(celdasDerecha[0]) : 0;
+            
+            let porc = 0;
+            if (celdasDerecha[1] && celdasDerecha[1].includes('%')) {
+              porc = parseFloat(celdasDerecha[1].replace('%', '').replace(',', '.').trim()) || 0;
+            } else if (totalConversaciones > 0) {
+              porc = (cant / totalConversaciones) * 100;
+            }
+
+            const ventas = celdasDerecha[2] !== undefined ? limpiarNumero(celdasDerecha[2]) : 0;
+            const tasaConv = celdasDerecha[3] ? celdasDerecha[3].trim() : '0,00%';
+            const canalPreferido = celdasDerecha[4] ? celdasDerecha[4].trim() : 'Sin ventas';
+
+            if (!origenTraficoAds.some(item => item.tipo.toLowerCase() === match.label.toLowerCase())) {
+              origenTraficoAds.push({
+                tipo: match.label,
+                cantidad: cant,
+                porcentaje: porc,
+                ventasConcretadas: ventas,
+                tasaConversion: tasaConv,
+                canalPreferido: canalPreferido
+              });
+            }
+          }
+        });
+
+        // --- D. FRANJAS HORARIAS ---
+        const textoLinea = cols.join(' ');
+        const patronHorario = /(08:00 a 09:59|10:00 a 13:59|14:00 a 16:59|17:00 a 18:59|19:00 a 07:59)/i;
+        const matchHora = textoLinea.match(patronHorario);
+
+        if (matchHora) {
+          const franjaNombre = matchHora[0];
+          const idxFranja = cols.findIndex(c => patronHorario.test(c));
+          if (idxFranja !== -1) {
+            const celdasHorario = cols.slice(idxFranja + 1).filter(c => c !== '');
+            const totalEntrantes = celdasHorario[0] !== undefined ? limpiarNumero(celdasHorario[0]) : 0;
+            const ventasTel = celdasHorario[1] !== undefined ? limpiarNumero(celdasHorario[1]) : 0;
+            const pctTel = celdasHorario[2] ? celdasHorario[2].trim() : '0%';
+
+            if (!franjasHorarias.some(f => f.franja.toLowerCase() === franjaNombre.toLowerCase())) {
+              franjasHorarias.push({
+                franja: franjaNombre,
+                totalConsultas: totalEntrantes,
+                ventasTel: ventasTel,
+                pctTel: pctTel
+              });
+            }
+          }
+        }
+
+        // --- E. DETECCIÓN DE MONTOS (COLUMNAS G Y H) ---
+        const lineaUpper = linea.toUpperCase();
+        if (lineaUpper.includes('DINERO PRESUPUESTADO')) {
+          const idx = cols.findIndex(c => c.toUpperCase().includes('DINERO PRESUPUESTADO'));
+          if (idx !== -1 && cols[idx + 1] !== undefined) {
+            dineroPresupuestado = limpiarNumero(cols[idx + 1]);
+          }
+        }
+        if (lineaUpper.includes('DINERO VENTA SUCURSAL')) {
+          const idx = cols.findIndex(c => c.toUpperCase().includes('DINERO VENTA SUCURSAL'));
+          if (idx !== -1 && cols[idx + 1] !== undefined) {
+            dineroSucursal = limpiarNumero(cols[idx + 1]);
+          }
+        }
+        if (lineaUpper.includes('DINERO VENTA TELEF')) {
+          const idx = cols.findIndex(c => c.toUpperCase().includes('DINERO VENTA TELEF'));
+          if (idx !== -1 && cols[idx + 1] !== undefined) {
+            dineroTelefonica = limpiarNumero(cols[idx + 1]);
+          }
+        }
+        if (lineaUpper.includes('DINERO VENTA WEB')) {
+          const idx = cols.findIndex(c => c.toUpperCase().includes('DINERO VENTA WEB'));
+          if (idx !== -1 && cols[idx + 1] !== undefined) {
+            dineroWeb = limpiarNumero(cols[idx + 1]);
+          }
+        }
+      });
+
+      return {
+        totalConversaciones,
+        totalLeads,
+        operadorHumano,
+        ventaSucursal,
+        ventaWeb,
+        ventaTelefonica,
+        resumenEtapas,
+        desempenoAsesores,
+        origenConversaciones: origenTraficoAds,
+        franjasHorarias,
+        dineroCliengo: {
+          presupuestado: dineroPresupuestado,
+          sucursal: dineroSucursal,
+          telefonica: dineroTelefonica,
+          web: dineroWeb,
+          totalDerivado: dineroSucursal + dineroTelefonica + dineroWeb
+        }
+      };
+    } catch (err) {
+      console.error("Error procesando CSV Cliengo:", err);
+      return null;
     }
-
-    // 2. BUSCADOR DE ELEMENTOS DE TRÁFICO
-    const tiposTraficoBuscados = [
-      { clave: 'facebook ads', label: 'Facebook Ads' },
-      { clave: 'instagram ads', label: 'Instagram Ads' },
-      { clave: 'meta ads (sin url)', label: 'Meta Ads (Sin URL)' },
-      { clave: 'meta ads', label: 'Meta Ads (Pauta)' },
-      { clave: 'meta ads (pauta)', label: 'Meta Ads (Pauta)' },
-      { clave: 'google ads', label: 'Google Ads' },
-      { clave: 'google ads (pauta)', label: 'Google Ads' },
-      { clave: 'orgánico / directo', label: 'Orgánico / Directo' },
-      { clave: 'organico / directo', label: 'Orgánico / Directo' },
-      { clave: 'orgánico', label: 'Orgánico / Directo' },
-      { clave: 'organico', label: 'Orgánico / Directo' }
-    ];
-
-    const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
-
-    // 3. PARSEO LÍNEA POR LÍNEA
-    lineas.forEach((linea) => {
-      // Manejar campos con comillas en CSV
-      const cols = [];
-      let actual = '';
-      let enComillas = false;
-      for (let i = 0; i < linea.length; i++) {
-        const c = linea[i];
-        if (c === '"') {
-          enComillas = !enComillas;
-        } else if (c === ',' && !enComillas) {
-          cols.push(actual.trim().replace(/^"|"$/g, ''));
-          actual = '';
-        } else {
-          actual += c;
-        }
-      }
-      cols.push(actual.trim().replace(/^"|"$/g, ''));
-
-      // --- A. RESUMEN POR ETAPAS ---
-      const primerCol = cols[1] || cols[0] || '';
-      const nombreEtapa = etapasPosibles.find(e => e.toLowerCase() === primerCol.toLowerCase());
-      
-      if (nombreEtapa) {
-        const cantidad = limpiarNumero(cols[2] || cols[3]);
-        if (cantidad > 0 && !resumenEtapas.some(e => e.nombre === nombreEtapa)) {
-          resumenEtapas.push({ nombre: nombreEtapa, cantidad });
-        }
-      }
-
-      // --- B. DESEMPEÑO POR ASESOR ---
-      cols.forEach((col, idx) => {
-        const val = col.trim().toLowerCase();
-        if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
-          const celdasRestantes = cols.slice(idx + 1).filter(c => c !== '');
-          const conv = celdasRestantes[0] ? limpiarNumero(celdasRestantes[0]) : 0;
-          const part = celdasRestantes[1] ? celdasRestantes[1].trim() : '0%';
-
-          if (!desempenoAsesores.some(a => a.nombre.toLowerCase() === val)) {
-            desempenoAsesores.push({
-              nombre: col.trim(),
-              conversaciones: conv,
-              participacion: part
-            });
-          }
-        }
-      });
-
-      // --- C. ORIGEN DE TRÁFICO Y ATRIBUCIÓN DE VENTAS ---
-      cols.forEach((col, idx) => {
-        const valCol = col.trim().toLowerCase();
-        const match = tiposTraficoBuscados.find(t => t.clave === valCol);
-
-        if (match) {
-          const celdasDerecha = cols.slice(idx + 1).filter(c => c !== '');
-          const cant = celdasDerecha[0] !== undefined ? limpiarNumero(celdasDerecha[0]) : 0;
-          
-          let porc = 0;
-          if (celdasDerecha[1] && celdasDerecha[1].includes('%')) {
-            porc = parseFloat(celdasDerecha[1].replace('%', '').replace(',', '.').trim()) || 0;
-          } else if (totalConversaciones > 0) {
-            porc = (cant / totalConversaciones) * 100;
-          }
-
-          // Métricas adicionales de ventas y canal preferido
-          const ventas = celdasDerecha[2] !== undefined ? limpiarNumero(celdasDerecha[2]) : 0;
-          const tasaConv = celdasDerecha[3] ? celdasDerecha[3].trim() : '0,00%';
-          const canalPreferido = celdasDerecha[4] ? celdasDerecha[4].trim() : 'Sin ventas';
-
-          if (!origenTraficoAds.some(item => item.tipo.toLowerCase() === match.label.toLowerCase())) {
-            origenTraficoAds.push({
-              tipo: match.label,
-              cantidad: cant,
-              porcentaje: porc,
-              ventasConcretadas: ventas,
-              tasaConversion: tasaConv,
-              canalPreferido: canalPreferido
-            });
-          }
-        }
-      });
-
-      // --- D. FRANJAS HORARIAS (08:00 a 19:00 hs y Fuera de horario) ---
-      const textoLinea = cols.join(' ');
-      const patronHorario = /(08:00 a 09:59|10:00 a 13:59|14:00 a 16:59|17:00 a 18:59|19:00 a 07:59)/i;
-      const matchHora = textoLinea.match(patronHorario);
-
-      if (matchHora) {
-        const franjaNombre = matchHora[0];
-        const idxFranja = cols.findIndex(c => patronHorario.test(c));
-        if (idxFranja !== -1) {
-          const celdasHorario = cols.slice(idxFranja + 1).filter(c => c !== '');
-          const totalEntrantes = celdasHorario[0] !== undefined ? limpiarNumero(celdasHorario[0]) : 0;
-          const ventasTel = celdasHorario[1] !== undefined ? limpiarNumero(celdasHorario[1]) : 0;
-          const pctTel = celdasHorario[2] ? celdasHorario[2].trim() : '0%';
-
-          if (!franjasHorarias.some(f => f.franja.toLowerCase() === franjaNombre.toLowerCase())) {
-            franjasHorarias.push({
-              franja: franjaNombre,
-              totalConsultas: totalEntrantes,
-              ventasTel: ventasTel,
-              pctTel: pctTel
-            });
-          }
-        }
-      }
-    });
-
-    return {
-      totalConversaciones,
-      totalLeads,
-      operadorHumano,
-      ventaSucursal,
-      ventaWeb,
-      ventaTelefonica,
-      resumenEtapas,
-      desempenoAsesores,
-      origenConversaciones: origenTraficoAds,
-      franjasHorarias
-    };
   };
 
   const cargarTodosLosMeses = () => {

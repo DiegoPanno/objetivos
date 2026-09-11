@@ -187,7 +187,6 @@ export default function MesModule({
             
             const margen = limpiarNumero(c.margen);
             const litros = limpiarNumero(c.litros);
-            const faltaFacturar = limpiarNumero(c.faltaFacturar);
             
             const esVentaTelefonica = c.canal?.toLowerCase().includes('vta.telefono') || 
                                       c.canal?.toLowerCase().includes('telefónica') ||
@@ -219,6 +218,10 @@ export default function MesModule({
                                          c.canal === "vtatel" ? "VENTA TELEFÓNICA" :
                                          c.canal === "vtaTelefono" ? "VENTA TELEFÓNICA" :
                                          c.canal?.toUpperCase() || '';
+
+            // Estado de cumplimiento de la meta del canal
+            const objetivoCumplido = metaCanal > 0 && acum >= metaCanal;
+            const diferenciaMeta = Math.abs(acum - metaCanal);
 
             return (
               <div key={c.id || idx} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
@@ -307,11 +310,14 @@ export default function MesModule({
                       <span className="font-black text-cyan-300">{shareObjetivo}% de meta</span>
                     </div>
                     
+                    {/* ESTADO DE CUMPLIMIENTO / FALTA FACTURAR */}
                     <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-1.5">
-                      <span className="text-slate-400 font-medium">Falta facturar:</span>
-                      <span className={`font-black ${faltaFacturar <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        ${Math.abs(faltaFacturar).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                        {faltaFacturar <= 0 && acum > 0 && ' ✅'}
+                      <span className="text-slate-400 font-medium">
+                        {objetivoCumplido ? 'Superó meta por:' : 'Falta facturar:'}
+                      </span>
+                      <span className={`font-black ${objetivoCumplido ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        ${diferenciaMeta.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        {objetivoCumplido && ' 🎉 ¡Objetivo cumplido!'}
                       </span>
                     </div>
                     

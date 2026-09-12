@@ -11,6 +11,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
+  const [productosSemana, setProductosSemana] = useState([]);
 
   const limpiarNumero = (valor) => {
     if (!valor && valor !== 0) return 0;
@@ -23,6 +24,75 @@ export default function App() {
     
     if (isNaN(numero)) return 0;
     return esNegativo ? -numero : numero;
+  };
+
+  const procesarProductosCSV = (csvText) => {
+    try {
+      if (!csvText) return [];
+      const lineas = csvText.split('\n').map(l => l.replace(/\r/g, '')).filter(Boolean);
+      if (lineas.length < 2) return [];
+
+      const productos = [];
+
+      lineas.slice(1).forEach(linea => {
+        const cols = [];
+        let actual = '';
+        let enComillas = false;
+        for (let i = 0; i < linea.length; i++) {
+          const c = linea[i];
+          if (c === '"') {
+            enComillas = !enComillas;
+          } else if (c === ',' && !enComillas) {
+            cols.push(actual.trim().replace(/^"|"$/g, ''));
+            actual = '';
+          } else {
+            actual += c;
+          }
+        }
+        cols.push(actual.trim().replace(/^"|"$/g, ''));
+
+        const vendedor = (cols[2] || '').trim();
+        const codigo = (cols[3] || '').trim();
+        const detalle = (cols[4] || '').trim();
+        const cantidad = limpiarNumero(cols[5]);
+
+        // Ignorar líneas de entrega e-commerce, flete, costo de envío y redondeo
+        const detalleLower = detalle.toLowerCase();
+        if (
+          codigo.startsWith('888') || 
+          codigo.startsWith('999') || 
+          detalleLower.includes('entrega') || 
+          detalleLower.includes('costo de envio') ||
+          detalleLower.includes('redondeo')
+        ) {
+          return;
+        }
+
+        if (detalle && cantidad !== 0) {
+          let canalNormalizado = vendedor;
+          const v = vendedor.toLowerCase();
+
+          if (v.includes('gabriela')) canalNormalizado = 'Gabriela';
+          else if (v.includes('ivan') || v.includes('iván')) canalNormalizado = 'Iván';
+          else if (v.includes('mercado libre') || v.includes('meli')) canalNormalizado = 'Mercado Libre';
+          else if (v.includes('provincia') || v.includes('bapro')) canalNormalizado = 'BAPRO';
+          else if (v.includes('ambito') || v.includes('ámbito')) canalNormalizado = 'Web Ámbito';
+
+          productos.push({
+            vendedor,
+            canalNormalizado,
+            codigo,
+            detalle,
+            cantidad
+          });
+        }
+      });
+
+      return productos;
+    } catch (err) {
+      console.error('Error procesando CSV Productos Semana:', err);
+      return [];
+    }
   };
 
   const procesarCliengoDesdeCSV = (csvText) => {
@@ -241,7 +311,7 @@ export default function App() {
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
-    const mesesACargar = [...MESES_DISPONIBLES, 'funnel_agosto', 'funnel_septiembre'];
+    const mesesACargar = [...MESES_DISPONIBLES, 'funnel_agosto', 'funnel_septiembre', 'productos_semana'];
     
     const promesas = mesesACargar.map(clave => {
       const url = URLS[clave]?.url;
@@ -269,6 +339,11 @@ export default function App() {
             return;
           }
           
+          if (clave === 'productos_semana') {
+            setProductosSemana(procesarProductosCSV(csv));
+            return;
+          }
+
           if (clave.startsWith('funnel_')) {
             const nombreMes = clave.replace('funnel_', '');
             nuevosCliengo[nombreMes] = procesarCliengoDesdeCSV(csv);
@@ -513,6 +588,7 @@ export default function App() {
           ultimaActualizacion={ultimaActualizacion}
           datosCliengo={datosCliengoPorMes[mesSeleccionado] || null}
           datosPorMes={datosPorMes}
+          productosSemana={productosSemana}
         />
       </main>
 

@@ -1,13 +1,19 @@
 // src/data/urls.js
 export const URLS = {
   // 🔥 Mes en curso (Septiembre 2026 - 30 días)
+ 
   septiembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1487836025&single=true&output=csv",
     label: "Septiembre 2026",
     dias: 30,
     esActivo: true
   },
-  // 🔥 Embudo Cliengo Septiembre
+  // 🎨 Pestaña publicada de productos Semana de la Pintura
+  productos_semana: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1357250441&single=true&output=csv",
+    label: "Productos Semana de la Pintura",
+    esActivo: true
+  },
   funnel_septiembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1503179238&single=true&output=csv",
     label: "Embudo Cliengo Septiembre",

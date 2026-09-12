@@ -1,7 +1,8 @@
 // src/components/MesModule.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import ResumenEjecutivo from './ResumenEjecutivo';
 import GraficoEvolucionMensual from './GraficoEvolucionMensual';
+import ModalProductos from './ModalProductos';
 
 const limpiarNumero = (valor) => {
   if (!valor && valor !== 0) return 0;
@@ -20,8 +21,11 @@ export default function MesModule({
   esActivo,
   ultimaActualizacion,
   datosCliengo,
-  datosPorMes = {} 
+  datosPorMes = {},
+  productosSemana = []
 }) {
+  const [modalProductosAbierto, setModalProductosAbierto] = useState(false);
+
   const { 
     totalAcumulado = 0, 
     totalMeta = 0, 
@@ -168,11 +172,23 @@ export default function MesModule({
 
       {/* TARJETAS DE ENFOQUE POR CANAL */}
       <section>
-        <div className="mb-6">
-          <h2 className="text-2xl font-extrabold text-slate-200">Enfoque por Canal de Venta</h2>
-          <p className="text-xs sm:text-sm text-slate-400">
-            {esActivo ? 'Promedio diario actual frente al requerido de cada sector' : 'Desempeño final por canal'}
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-extrabold text-slate-200">Enfoque por Canal de Venta</h2>
+            <p className="text-xs sm:text-sm text-slate-400">
+              {esActivo ? 'Promedio diario actual frente al requerido de cada sector' : 'Desempeño final por canal'}
+            </p>
+          </div>
+
+          {productosSemana && productosSemana.length > 0 && (
+            <button
+              onClick={() => setModalProductosAbierto(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-black rounded-xl shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
+            >
+              <span>🎨</span>
+              <span>Ver artículos vendidos</span>
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -210,7 +226,7 @@ export default function MesModule({
             const enRitmo = diarioActual >= diarioReq;
             const brechaDiaria = diarioReq - diarioActual;
 
-            // Cálculos precisos de Share
+            // Cálculos de Share
             const shareVentas = totalAcumulado > 0 ? ((acum / totalAcumulado) * 100).toFixed(1) : "0.0";
             const shareObjetivo = totalMeta > 0 ? ((metaCanal / totalMeta) * 100).toFixed(1) : "0.0";
             
@@ -219,7 +235,6 @@ export default function MesModule({
                                          c.canal === "vtaTelefono" ? "VENTA TELEFÓNICA" :
                                          c.canal?.toUpperCase() || '';
 
-            // Estado de cumplimiento de la meta del canal
             const objetivoCumplido = metaCanal > 0 && acum >= metaCanal;
             const diferenciaMeta = Math.abs(acum - metaCanal);
 
@@ -364,6 +379,13 @@ export default function MesModule({
             );
           })}
         </div>
+
+        {/* MODAL DRILL-DOWN DE PRODUCTOS */}
+        <ModalProductos 
+          isOpen={modalProductosAbierto}
+          onClose={() => setModalProductosAbierto(false)}
+          productos={productosSemana}
+        />
       </section>
 
       {/* 📊 MÓDULO CLIENGO */}

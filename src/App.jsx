@@ -11,7 +11,9 @@ export default function App() {
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
-  const [productosSemana, setProductosSemana] = useState([]);
+  
+  // Guardamos los productos agrupados por mes: { septiembre: [...], agosto: [...] }
+  const [productosPorMes, setProductosPorMes] = useState({});
 
   const limpiarNumero = (valor) => {
     if (!valor && valor !== 0) return 0;
@@ -56,7 +58,6 @@ export default function App() {
         const detalle = (cols[4] || '').trim();
         const cantidad = limpiarNumero(cols[5]);
 
-        // Ignorar líneas de entrega e-commerce, flete, costo de envío y redondeo
         const detalleLower = detalle.toLowerCase();
         if (
           codigo.startsWith('888') || 
@@ -90,7 +91,7 @@ export default function App() {
 
       return productos;
     } catch (err) {
-      console.error('Error procesando CSV Productos Semana:', err);
+      console.error('Error procesando CSV Productos:', err);
       return [];
     }
   };
@@ -108,7 +109,6 @@ export default function App() {
       let ventaWeb = 0;
       let ventaTelefonica = 0;
 
-      // Métricas monetarias agregadas (Columnas G y H)
       let dineroPresupuestado = 0;
       let dineroSucursal = 0;
       let dineroTelefonica = 0;
@@ -119,7 +119,6 @@ export default function App() {
       const origenTraficoAds = [];
       const franjasHorarias = [];
 
-      // 1. TOTALES SUPERIORES
       const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
       if (idxFilaCabecera !== -1 && lineas[idxFilaCabecera + 1]) {
         const filaValores = lineas[idxFilaCabecera + 1].split(',').map(v => v.trim());
@@ -133,7 +132,6 @@ export default function App() {
         ventaTelefonica = numeros[5] || 0;
       }
 
-      // 2. BUSCADOR DE ELEMENTOS DE TRÁFICO
       const tiposTraficoBuscados = [
         { clave: 'facebook ads', label: 'Facebook Ads' },
         { clave: 'instagram ads', label: 'Instagram Ads' },
@@ -150,7 +148,6 @@ export default function App() {
 
       const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
 
-      // 3. PARSEO LÍNEA POR LÍNEA
       lineas.forEach((linea) => {
         const cols = [];
         let actual = '';
@@ -168,7 +165,6 @@ export default function App() {
         }
         cols.push(actual.trim().replace(/^"|"$/g, ''));
 
-        // --- A. RESUMEN POR ETAPAS ---
         const primerCol = cols[1] || cols[0] || '';
         const nombreEtapa = etapasPosibles.find(e => e.toLowerCase() === primerCol.toLowerCase());
         
@@ -179,7 +175,6 @@ export default function App() {
           }
         }
 
-        // --- B. DESEMPEÑO POR ASESOR ---
         cols.forEach((col, idx) => {
           const val = col.trim().toLowerCase();
           if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
@@ -197,7 +192,6 @@ export default function App() {
           }
         });
 
-        // --- C. ORIGEN DE TRÁFICO Y ATRIBUCIÓN DE VENTAS ---
         cols.forEach((col, idx) => {
           const valCol = col.trim().toLowerCase();
           const match = tiposTraficoBuscados.find(t => t.clave === valCol);
@@ -230,7 +224,6 @@ export default function App() {
           }
         });
 
-        // --- D. FRANJAS HORARIAS ---
         const textoLinea = cols.join(' ');
         const patronHorario = /(08:00 a 09:59|10:00 a 13:59|14:00 a 16:59|17:00 a 18:59|19:00 a 07:59)/i;
         const matchHora = textoLinea.match(patronHorario);
@@ -255,7 +248,6 @@ export default function App() {
           }
         }
 
-        // --- E. DETECCIÓN DE MONTOS (COLUMNAS G Y H) ---
         const lineaUpper = linea.toUpperCase();
         if (lineaUpper.includes('DINERO PRESUPUESTADO')) {
           const idx = cols.findIndex(c => c.toUpperCase().includes('DINERO PRESUPUESTADO'));
@@ -311,11 +303,12 @@ export default function App() {
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
-    const mesesACargar = [...MESES_DISPONIBLES, 'funnel_agosto', 'funnel_septiembre', 'productos_semana'];
+    // Obtenemos todas las claves existentes en URLS
+    const clavesACargar = Object.keys(URLS);
     
-    const promesas = mesesACargar.map(clave => {
+    const promesas = clavesACargar.map(clave => {
       const url = URLS[clave]?.url;
-      if (!url) return Promise.resolve({ clave, error: new Error(`URL no encontrada para ${clave}`) });
+      if (!url || url.includes('URL_CSV')) return Promise.resolve({ clave, ignorar: true });
       
       return fetch(url)
         .then(res => {
@@ -330,17 +323,22 @@ export default function App() {
       .then(resultados => {
         const nuevosDatos = {};
         const nuevosCliengo = {};
+        const nuevosProductos = {};
         let huboError = false;
 
-        resultados.forEach(({ clave, csv, error }) => {
+        resultados.forEach(({ clave, csv, error, ignorar }) => {
+          if (ignorar) return;
+
           if (error) {
             console.error(`Error en ${clave}:`, error);
             huboError = true;
             return;
           }
           
-          if (clave === 'productos_semana') {
-            setProductosSemana(procesarProductosCSV(csv));
+          // 🎨 Detección de productos por mes: productos_septiembre, productos_agosto, etc.
+          if (clave.startsWith('productos_')) {
+            const mesClave = clave.replace('productos_', '');
+            nuevosProductos[mesClave] = procesarProductosCSV(csv);
             return;
           }
 
@@ -355,6 +353,7 @@ export default function App() {
         });
 
         setDatosCliengoPorMes(nuevosCliengo);
+        setProductosPorMes(nuevosProductos);
         setDatosPorMes(nuevosDatos);
 
         if (huboError) {
@@ -588,7 +587,7 @@ export default function App() {
           ultimaActualizacion={ultimaActualizacion}
           datosCliengo={datosCliengoPorMes[mesSeleccionado] || null}
           datosPorMes={datosPorMes}
-          productosSemana={productosSemana}
+          productosSemana={productosPorMes[mesSeleccionado] || []}
         />
       </main>
 

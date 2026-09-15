@@ -53,21 +53,12 @@ export default function App() {
         }
         cols.push(actual.trim().replace(/^"|"$/g, ''));
 
-        const vendedor = (cols[2] || '').trim();
-        const codigo = (cols[3] || '').trim();
-        const detalle = (cols[4] || '').trim();
-        const cantidad = limpiarNumero(cols[5]);
-
-        const detalleLower = detalle.toLowerCase();
-        if (
-          codigo.startsWith('888') || 
-          codigo.startsWith('999') || 
-          detalleLower.includes('entrega') || 
-          detalleLower.includes('costo de envio') ||
-          detalleLower.includes('redondeo')
-        ) {
-          return;
-        }
+        // Columnas provenientes de la hoja Ranking_Drive generada por QUERY:
+        // Col 0: Vendedor/Canal | Col 1: Código | Col 2: Detalle | Col 3: Total Unidades
+        const vendedor = (cols[0] || '').trim();
+        const codigo = (cols[1] || '').trim();
+        const detalle = (cols[2] || '').trim();
+        const cantidad = limpiarNumero(cols[3]);
 
         if (detalle && cantidad !== 0) {
           let canalNormalizado = vendedor;
@@ -303,7 +294,6 @@ export default function App() {
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
-    // Obtenemos todas las claves existentes en URLS
     const clavesACargar = Object.keys(URLS);
     
     const promesas = clavesACargar.map(clave => {
@@ -335,7 +325,6 @@ export default function App() {
             return;
           }
           
-          // 🎨 Detección de productos por mes: productos_septiembre, productos_agosto, etc.
           if (clave.startsWith('productos_')) {
             const mesClave = clave.replace('productos_', '');
             nuevosProductos[mesClave] = procesarProductosCSV(csv);

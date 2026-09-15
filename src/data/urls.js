@@ -7,9 +7,9 @@ export const URLS = {
     dias: 30,
     esActivo: true
   },
-  // 🎨 Productos específicos de Septiembre
+  // 🎨 Pestaña Ranking_Drive publicada
   productos_septiembre: {
-    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1357250441&single=true&output=csv",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1562560297&single=true&output=csv",
     label: "Productos Septiembre",
     esActivo: true
   },
@@ -26,9 +26,9 @@ export const URLS = {
     dias: 31,
     esActivo: false
   },
-  // 🎨 Productos específicos de Agosto (reemplazá con la URL de la pestaña de agosto)
+  // 🎨 Productos específicos de Agosto 
   productos_agosto: {
-    url: "URL_CSV_PRODUCTOS_AGOSTO_AQUI",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1256762036&single=true&output=csv",
     label: "Productos Agosto",
     esActivo: false
   },

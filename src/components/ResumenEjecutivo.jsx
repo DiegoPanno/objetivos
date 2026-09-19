@@ -102,7 +102,8 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+        {/* REJILLA AJUSTADA A 3 COLUMNAS */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
           {/* PRESUPUESTADO */}
           <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-850">
             <div className="flex items-center justify-between mb-1">
@@ -137,18 +138,6 @@ export default function ResumenEjecutivo({ datosCliengo, mesLabel }) {
               ${(dineroCliengo?.telefonica || 0).toLocaleString('es-AR')}
             </div>
             <span className="text-[11px] text-slate-500 block mt-1">Cerrado por asesores del canal</span>
-          </div>
-
-          {/* VENTA WEB */}
-          <div className="bg-slate-950/70 p-4 rounded-xl border border-slate-850">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-emerald-400">Venta Web (E-commerce)</span>
-              <span className="text-[10px] bg-emerald-400/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">Online</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-300">
-              ${(dineroCliengo?.web || 0).toLocaleString('es-AR')}
-            </div>
-            <span className="text-[11px] text-slate-500 block mt-1">Completados en la tienda web</span>
           </div>
         </div>
       </div>

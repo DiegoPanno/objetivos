@@ -176,7 +176,7 @@ export default function MesModule({
           <div>
             <h2 className="text-2xl font-extrabold text-slate-200">Enfoque por Canal de Venta</h2>
             <p className="text-xs sm:text-sm text-slate-400">
-              {esActivo ? 'Promedio diario actual frente al requerido de cada sector' : 'Desempeño final por canal'}
+              {esActivo ? 'Promedio diario, ritmo y proyección individual por sector' : 'Desempeño final por canal'}
             </p>
           </div>
 
@@ -203,6 +203,12 @@ export default function MesModule({
             
             const margen = limpiarNumero(c.margen);
             const litros = limpiarNumero(c.litros);
+
+            // Proyección individual por canal según el día de venta transcurrido
+            const promedioCanalPorDia = diaDeVenta > 0 ? acum / diaDeVenta : 0;
+            const proyeccionCanal = promedioCanalPorDia * diasTotalesMes;
+            const brechaProyeccionCanal = proyeccionCanal - metaCanal;
+            const llegaObjetivoCanal = brechaProyeccionCanal >= 0;
             
             const esVentaTelefonica = c.canal?.toLowerCase().includes('vta.telefono') || 
                                       c.canal?.toLowerCase().includes('telefónica') ||
@@ -308,7 +314,7 @@ export default function MesModule({
                     </div>
                   </div>
 
-                  {/* MONTO ACUMULADO Y SHARES */}
+                  {/* MONTO ACUMULADO, SHARES Y PROYECCIÓN */}
                   <div className="space-y-1.5 bg-slate-950/80 p-3 rounded-xl border border-slate-850">
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-slate-400 font-semibold">Acumulado Mes:</span>
@@ -335,6 +341,28 @@ export default function MesModule({
                         {objetivoCumplido && ' 🎉 ¡Objetivo cumplido!'}
                       </span>
                     </div>
+
+                    {/* 🚀 BLOQUE DE PROYECCIÓN DE CIERRE POR CANAL */}
+                    {esActivo && (
+                      <div className={`mt-3 p-2.5 rounded-xl border text-xs ${
+                        llegaObjetivoCanal 
+                          ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300' 
+                          : 'bg-rose-500/10 border-rose-500/25 text-rose-300'
+                      }`}>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[11px] font-semibold text-slate-300">Proyección Cierre:</span>
+                          <span className="font-black text-sm text-white">
+                            ${proyeccionCanal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] mt-1 font-bold">
+                          <span>{llegaObjetivoCanal ? '🟢 Supera meta por:' : '⚠️ Queda corto por:'}</span>
+                          <span>
+                            {llegaObjetivoCanal ? '+' : '-'}${Math.abs(brechaProyeccionCanal).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     
                     {/* VENDEDORES */}
                     {esVentaTelefonica && vendedores.length > 0 && (

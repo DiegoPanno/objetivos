@@ -1,32 +1,41 @@
 // src/data/urls.js
 export const URLS = {
-  // 🔥 Septiembre 2026
+  // 🚀 Octubre 2026 (Nuevo mes activo)
+  octubre: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1162219836&single=true&output=csv",
+    label: "Octubre 2026",
+    dias: 31,
+    esActivo: true
+  },
+  // Si vas a publicar también las pestañas de productos y funnel de octubre, las agregás aquí:
+  // productos_octubre: { url: "...", label: "Productos Octubre", esActivo: true },
+  // funnel_octubre: { url: "...", label: "Embudo Cliengo Octubre", esActivo: true },
+
+  // 📁 Septiembre 2026 (Pasa a histórico)
   septiembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1487836025&single=true&output=csv",
     label: "Septiembre 2026",
     dias: 30,
-    esActivo: true
+    esActivo: false
   },
-  // 🎨 Pestaña Ranking_Drive publicada
   productos_septiembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1562560297&single=true&output=csv",
     label: "Productos Septiembre",
-    esActivo: true
+    esActivo: false
   },
   funnel_septiembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1503179238&single=true&output=csv",
     label: "Embudo Cliengo Septiembre",
-    esActivo: true
+    esActivo: false
   },
 
-  // 📚 Agosto 2026
+  // 📁 Agosto 2026
   agosto: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=670064080&single=true&output=csv",
     label: "Agosto 2026",
     dias: 31,
     esActivo: false
   },
-  // 🎨 Productos específicos de Agosto 
   productos_agosto: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1256762036&single=true&output=csv",
     label: "Productos Agosto",
@@ -52,4 +61,4 @@ export const URLS = {
   }
 };
 
-export const MESES_DISPONIBLES = ['septiembre', 'agosto', 'julio', 'junio'];
+export const MESES_DISPONIBLES = ['octubre', 'septiembre', 'agosto', 'julio', 'junio'];

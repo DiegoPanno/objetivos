@@ -7,23 +7,25 @@ export default function GraficoEvolucionMensual({
   proyeccionFinalMes,
   datosPorMes = {}
 }) {
-  // 1. Extraemos acumulados históricos
+  // 1. Extraemos acumulados históricos (incluyendo Septiembre)
   const facturadoJunio = datosPorMes['junio']?.globales?.totalAcumulado || 35748934;
   const facturadoJulio = datosPorMes['julio']?.globales?.totalAcumulado || 46013841;
   const facturadoAgosto = datosPorMes['agosto']?.globales?.totalAcumulado || 68617089;
+  const facturadoSeptiembre = datosPorMes['septiembre']?.globales?.totalAcumulado || 0;
 
   const historicos = [
     { mes: 'Junio', facturado: facturadoJunio },
     { mes: 'Julio', facturado: facturadoJulio },
     { mes: 'Agosto', facturado: facturadoAgosto },
+    { mes: 'Septiembre', facturado: facturadoSeptiembre },
   ];
 
-  // 2. Datos reales y proyección del mes en curso (Septiembre)
+  // 2. Datos reales y proyección del mes en curso (Octubre)
   const acumuladoActual = datosActuales?.globales?.totalAcumulado || datosActuales?.totalAcumulado || 0;
   const proyeccion = proyeccionFinalMes || 0;
 
   const actual = {
-    mes: mesActual?.label ? mesActual.label.split(' ')[0] : 'Septiembre',
+    mes: mesActual?.label ? mesActual.label.split(' ')[0] : 'Octubre',
     acumulado: acumuladoActual,
     proyeccion: proyeccion,
   };
@@ -56,6 +58,7 @@ export default function GraficoEvolucionMensual({
     'Julio': { bg: '#06b6d4', bgLight: '#06b6d440', text: '#22d3ee' },
     'Agosto': { bg: '#8b5cf6', bgLight: '#8b5cf640', text: '#a78bfa' },
     'Septiembre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
+    'Octubre': { bg: '#f59e0b', bgLight: '#f59e0b40', text: '#fbbf24' },
   };
 
   return (
@@ -80,7 +83,7 @@ export default function GraficoEvolucionMensual({
           {todosLosMeses.map((item, idx) => {
             const esActual = item.esActual || false;
             const altura = maxEscala > 0 ? (item.facturado / maxEscala) * 100 : 0;
-            const color = colores[item.mes] || colores['Septiembre'];
+            const color = colores[item.mes] || colores['Octubre'];
             
             const alturaProyeccion = esActual && maxEscala > 0 ? (actual.proyeccion / maxEscala) * 100 : 0;
             const cabeTextoAdentro = altura > 22;
@@ -109,7 +112,7 @@ export default function GraficoEvolucionMensual({
                         transform: 'translateX(-50%)',
                       }}
                     >
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-bold text-emerald-400/70 whitespace-nowrap">
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-bold text-amber-400/80 whitespace-nowrap">
                         Proy. {formatearK(actual.proyeccion)}
                       </span>
                     </div>

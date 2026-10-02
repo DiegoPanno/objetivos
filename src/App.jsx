@@ -4,7 +4,7 @@ import { URLS, MESES_DISPONIBLES } from './data/urls';
 import MesModule from './components/MesModule';
 
 export default function App() {
-  const [mesSeleccionado, setMesSeleccionado] = useState('septiembre');
+  const [mesSeleccionado, setMesSeleccionado] = useState('octubre');
   const [datosPorMes, setDatosPorMes] = useState({});
   const [cargando, setCargando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
@@ -12,7 +12,7 @@ export default function App() {
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
   
-  // Guardamos los productos agrupados por mes: { septiembre: [...], agosto: [...] }
+  // Guardamos los productos agrupados por mes: { octubre: [...], septiembre: [...], agosto: [...] }
   const [productosPorMes, setProductosPorMes] = useState({});
 
   const limpiarNumero = (valor) => {

@@ -180,15 +180,14 @@ export default function MesModule({
             </p>
           </div>
 
-          {productosSemana && productosSemana.length > 0 && (
-            <button
-              onClick={() => setModalProductosAbierto(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-black rounded-xl shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
-            >
-              <span>🎨</span>
-              <span>Ver artículos vendidos</span>
-            </button>
-          )}
+          {/* BOTÓN VISIBLE PERMANENTE PARA ACCEDER AL DETALLE DE ARTÍCULOS */}
+          <button
+            onClick={() => setModalProductosAbierto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-black rounded-xl shadow-lg shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer"
+          >
+            <span>🎨</span>
+            <span>Ver artículos vendidos</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

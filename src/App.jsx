@@ -11,6 +11,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
+  const [productosPorMes, setProductosPorMes] = useState({});
 
   const limpiarNumero = (valor) => {
     if (!valor && valor !== 0) return 0;
@@ -23,6 +24,65 @@ export default function App() {
     
     if (isNaN(numero)) return 0;
     return esNegativo ? -numero : numero;
+  };
+
+  const normalizarCanalProducto = (canalRaw) => {
+    const c = String(canalRaw || '').toLowerCase().trim();
+    if (c.includes('gabi') || c.includes('gabriela')) return 'Gabriela';
+    if (c.includes('ivan') || c.includes('iván')) return 'Iván';
+    if (c.includes('meli') || c.includes('mercado libre')) return 'Mercado Libre';
+    if (c.includes('bapro') || c.includes('provincia')) return 'BAPRO';
+    if (c.includes('web') || c.includes('ambito') || c.includes('ámbito')) return 'Web Ámbito';
+    return canalRaw || 'Otros';
+  };
+
+  const procesarRankingDesdeCSV = (csvText) => {
+    if (!csvText) return [];
+    const lineas = csvText.split('\n').map(l => l.replace(/\r/g, '').trim()).filter(Boolean);
+    if (lineas.length < 2) return [];
+
+    const cabeceras = lineas[0].split(',').map(c => c.trim().toLowerCase());
+    const idxCanal = cabeceras.findIndex(c => c.includes('canal') || c.includes('vendedor') || c.includes('origen'));
+    const idxCodigo = cabeceras.findIndex(c => c.includes('cod') || c.includes('código') || c.includes('sku') || c.includes('id'));
+    const idxDetalle = cabeceras.findIndex(c => c.includes('detalle') || c.includes('producto') || c.includes('artículo') || c.includes('descripcion') || c.includes('descripción'));
+    const idxCantidad = cabeceras.findIndex(c => c.includes('cant') || c.includes('unid') || c.includes('total') || c.includes('pedidos'));
+
+    const productos = [];
+
+    lineas.slice(1).forEach(linea => {
+      // Manejar comas dentro de comillas
+      const cols = [];
+      let actual = '';
+      let enComillas = false;
+      for (let i = 0; i < linea.length; i++) {
+        const char = linea[i];
+        if (char === '"') {
+          enComillas = !enComillas;
+        } else if (char === ',' && !enComillas) {
+          cols.push(actual.trim().replace(/^"|"$/g, ''));
+          actual = '';
+        } else {
+          actual += char;
+        }
+      }
+      cols.push(actual.trim().replace(/^"|"$/g, ''));
+
+      const canalRaw = cols[idxCanal !== -1 ? idxCanal : 0] || '';
+      const codigo = cols[idxCodigo !== -1 ? idxCodigo : 1] || '';
+      const detalle = cols[idxDetalle !== -1 ? idxDetalle : 2] || '';
+      const cantidad = limpiarNumero(cols[idxCantidad !== -1 ? idxCantidad : 3] || 0);
+
+      if (detalle && cantidad > 0) {
+        productos.push({
+          canalNormalizado: normalizarCanalProducto(canalRaw),
+          codigo,
+          detalle,
+          cantidad
+        });
+      }
+    });
+
+    return productos;
   };
 
   const procesarCliengoDesdeCSV = (csvText) => {
@@ -42,7 +102,6 @@ export default function App() {
     const origenTraficoAds = [];
     const franjasHorarias = [];
 
-    // 1. TOTALES SUPERIORES
     const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
     if (idxFilaCabecera !== -1 && lineas[idxFilaCabecera + 1]) {
       const filaValores = lineas[idxFilaCabecera + 1].split(',').map(v => v.trim());
@@ -56,7 +115,6 @@ export default function App() {
       ventaTelefonica = numeros[5] || 0;
     }
 
-    // 2. BUSCADOR DE ELEMENTOS DE TRÁFICO
     const tiposTraficoBuscados = [
       { clave: 'facebook ads', label: 'Facebook Ads' },
       { clave: 'instagram ads', label: 'Instagram Ads' },
@@ -73,9 +131,7 @@ export default function App() {
 
     const etapasPosibles = ['Respondidos', 'Otros', 'Nuevo', 'Presupuesto', 'En progreso', 'Venta', 'Ventas web', 'Con venta', 'Reclamos'];
 
-    // 3. PARSEO LÍNEA POR LÍNEA
     lineas.forEach((linea) => {
-      // Manejar campos con comillas en CSV
       const cols = [];
       let actual = '';
       let enComillas = false;
@@ -92,7 +148,6 @@ export default function App() {
       }
       cols.push(actual.trim().replace(/^"|"$/g, ''));
 
-      // --- A. RESUMEN POR ETAPAS ---
       const primerCol = cols[1] || cols[0] || '';
       const nombreEtapa = etapasPosibles.find(e => e.toLowerCase() === primerCol.toLowerCase());
       
@@ -103,7 +158,6 @@ export default function App() {
         }
       }
 
-      // --- B. DESEMPEÑO POR ASESOR ---
       cols.forEach((col, idx) => {
         const val = col.trim().toLowerCase();
         if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
@@ -121,7 +175,6 @@ export default function App() {
         }
       });
 
-      // --- C. ORIGEN DE TRÁFICO Y ATRIBUCIÓN DE VENTAS ---
       cols.forEach((col, idx) => {
         const valCol = col.trim().toLowerCase();
         const match = tiposTraficoBuscados.find(t => t.clave === valCol);
@@ -137,7 +190,6 @@ export default function App() {
             porc = (cant / totalConversaciones) * 100;
           }
 
-          // Métricas adicionales de ventas y canal preferido
           const ventas = celdasDerecha[2] !== undefined ? limpiarNumero(celdasDerecha[2]) : 0;
           const tasaConv = celdasDerecha[3] ? celdasDerecha[3].trim() : '0,00%';
           const canalPreferido = celdasDerecha[4] ? celdasDerecha[4].trim() : 'Sin ventas';
@@ -155,7 +207,6 @@ export default function App() {
         }
       });
 
-      // --- D. FRANJAS HORARIAS (08:00 a 19:00 hs y Fuera de horario) ---
       const textoLinea = cols.join(' ');
       const patronHorario = /(08:00 a 09:59|10:00 a 13:59|14:00 a 16:59|17:00 a 18:59|19:00 a 07:59)/i;
       const matchHora = textoLinea.match(patronHorario);
@@ -199,7 +250,8 @@ export default function App() {
     setSincronizando(true);
     
     const funnels = MESES_DISPONIBLES.map(m => `funnel_${m}`).filter(f => URLS[f]);
-    const mesesACargar = [...MESES_DISPONIBLES, ...funnels];
+    const rankings = MESES_DISPONIBLES.map(m => `ranking_${m}`).filter(r => URLS[r]);
+    const mesesACargar = [...MESES_DISPONIBLES, ...funnels, ...rankings];
     
     const promesas = mesesACargar.map(clave => {
       const url = URLS[clave]?.url;
@@ -218,6 +270,7 @@ export default function App() {
       .then(resultados => {
         const nuevosDatos = {};
         const nuevosCliengo = {};
+        const nuevosProductos = {};
         let huboError = false;
 
         resultados.forEach(({ clave, csv, error }) => {
@@ -232,6 +285,12 @@ export default function App() {
             nuevosCliengo[nombreMes] = procesarCliengoDesdeCSV(csv);
             return;
           }
+
+          if (clave.startsWith('ranking_')) {
+            const nombreMes = clave.replace('ranking_', '');
+            nuevosProductos[nombreMes] = procesarRankingDesdeCSV(csv);
+            return;
+          }
           
           const diasDelMes = URLS[clave]?.dias || 30;
           nuevosDatos[clave] = procesarMes(csv, diasDelMes);
@@ -239,6 +298,7 @@ export default function App() {
 
         setDatosCliengoPorMes(nuevosCliengo);
         setDatosPorMes(nuevosDatos);
+        setProductosPorMes(nuevosProductos);
 
         if (huboError) {
           setError('Algunos datos no pudieron cargarse correctamente');
@@ -409,6 +469,7 @@ export default function App() {
 
   const mesActual = URLS[mesSeleccionado];
   const datosActuales = datosPorMes[mesSeleccionado] || { canales: [], globales: {} };
+  const productosActuales = productosPorMes[mesSeleccionado] || [];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans antialiased">
@@ -471,6 +532,7 @@ export default function App() {
           ultimaActualizacion={ultimaActualizacion}
           datosCliengo={datosCliengoPorMes[mesSeleccionado] || null}
           datosPorMes={datosPorMes}
+          productosSemana={productosActuales}
         />
       </main>
 

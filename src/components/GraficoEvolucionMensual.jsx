@@ -7,25 +7,31 @@ export default function GraficoEvolucionMensual({
   proyeccionFinalMes,
   datosPorMes = {}
 }) {
-  // 1. Extraemos acumulados históricos (incluyendo Septiembre)
+  // 1. Extraemos acumulados históricos
   const facturadoJunio = datosPorMes['junio']?.globales?.totalAcumulado || 35748934;
   const facturadoJulio = datosPorMes['julio']?.globales?.totalAcumulado || 46013841;
   const facturadoAgosto = datosPorMes['agosto']?.globales?.totalAcumulado || 68617089;
   const facturadoSeptiembre = datosPorMes['septiembre']?.globales?.totalAcumulado || 0;
 
+  const nombreMesActual = mesActual?.label ? mesActual.label.split(' ')[0] : 'Octubre';
+
+  // Si el mes en curso es Octubre, Septiembre pasa a ser histórico
   const historicos = [
     { mes: 'Junio', facturado: facturadoJunio },
     { mes: 'Julio', facturado: facturadoJulio },
     { mes: 'Agosto', facturado: facturadoAgosto },
-    { mes: 'Septiembre', facturado: facturadoSeptiembre },
   ];
 
-  // 2. Datos reales y proyección del mes en curso (Octubre)
+  if (nombreMesActual.toLowerCase() === 'octubre' && facturadoSeptiembre > 0) {
+    historicos.push({ mes: 'Septiembre', facturado: facturadoSeptiembre });
+  }
+
+  // 2. Datos reales y proyección del mes en curso
   const acumuladoActual = datosActuales?.globales?.totalAcumulado || datosActuales?.totalAcumulado || 0;
   const proyeccion = proyeccionFinalMes || 0;
 
   const actual = {
-    mes: mesActual?.label ? mesActual.label.split(' ')[0] : 'Octubre',
+    mes: nombreMesActual,
     acumulado: acumuladoActual,
     proyeccion: proyeccion,
   };
@@ -57,8 +63,8 @@ export default function GraficoEvolucionMensual({
     'Junio': { bg: '#3b82f6', bgLight: '#3b82f640', text: '#60a5fa' },
     'Julio': { bg: '#06b6d4', bgLight: '#06b6d440', text: '#22d3ee' },
     'Agosto': { bg: '#8b5cf6', bgLight: '#8b5cf640', text: '#a78bfa' },
-    'Septiembre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
-    'Octubre': { bg: '#f59e0b', bgLight: '#f59e0b40', text: '#fbbf24' },
+    'Septiembre': { bg: '#38bdf8', bgLight: '#38bdf840', text: '#7dd3fc' },
+    'Octubre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
   };
 
   return (
@@ -112,7 +118,7 @@ export default function GraficoEvolucionMensual({
                         transform: 'translateX(-50%)',
                       }}
                     >
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-bold text-amber-400/80 whitespace-nowrap">
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-bold text-emerald-400/70 whitespace-nowrap">
                         Proy. {formatearK(actual.proyeccion)}
                       </span>
                     </div>

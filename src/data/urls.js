@@ -1,26 +1,23 @@
 // src/data/urls.js
 export const URLS = {
-  // 🚀 Octubre 2026 (Nuevo mes activo)
+  // 🔥 Mes en curso (Octubre 2026 - 31 días)
   octubre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1162219836&single=true&output=csv",
     label: "Octubre 2026",
     dias: 31,
     esActivo: true
   },
-  // Si vas a publicar también las pestañas de productos y funnel de octubre, las agregás aquí:
-  // productos_octubre: { url: "...", label: "Productos Octubre", esActivo: true },
-  // funnel_octubre: { url: "...", label: "Embudo Cliengo Octubre", esActivo: true },
+  funnel_octubre: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=580337007&single=true&output=csv",
+    label: "Embudo Cliengo Octubre",
+    esActivo: true
+  },
 
-  // 📁 Septiembre 2026 (Pasa a histórico)
+  // 📚 Históricos
   septiembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1487836025&single=true&output=csv",
     label: "Septiembre 2026",
     dias: 30,
-    esActivo: false
-  },
-  productos_septiembre: {
-    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1562560297&single=true&output=csv",
-    label: "Productos Septiembre",
     esActivo: false
   },
   funnel_septiembre: {
@@ -28,17 +25,10 @@ export const URLS = {
     label: "Embudo Cliengo Septiembre",
     esActivo: false
   },
-
-  // 📁 Agosto 2026
   agosto: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=670064080&single=true&output=csv",
     label: "Agosto 2026",
     dias: 31,
-    esActivo: false
-  },
-  productos_agosto: {
-    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1256762036&single=true&output=csv",
-    label: "Productos Agosto",
     esActivo: false
   },
   funnel_agosto: {
@@ -46,7 +36,6 @@ export const URLS = {
     label: "Embudo Cliengo Agosto",
     esActivo: false
   },
-
   julio: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=51856544&single=true&output=csv",
     label: "Julio 2026",

@@ -30,6 +30,7 @@ export default function App() {
     const c = String(canalRaw || '').toLowerCase().trim();
     if (c.includes('gabi') || c.includes('gabriela')) return 'Gabriela';
     if (c.includes('ivan') || c.includes('iván')) return 'Iván';
+    if (c.includes('valen') || c.includes('valentino')) return 'Valentino';
     if (c.includes('meli') || c.includes('mercado libre')) return 'Mercado Libre';
     if (c.includes('bapro') || c.includes('provincia')) return 'BAPRO';
     if (c.includes('web') || c.includes('ambito') || c.includes('ámbito')) return 'Web Ámbito';
@@ -50,7 +51,6 @@ export default function App() {
     const productos = [];
 
     lineas.slice(1).forEach(linea => {
-      // Manejar comas dentro de comillas
       const cols = [];
       let actual = '';
       let enComillas = false;
@@ -160,7 +160,8 @@ export default function App() {
 
       cols.forEach((col, idx) => {
         const val = col.trim().toLowerCase();
-        if (val === 'ivan' || val === 'iván' || val === 'gabriela') {
+        // Incluido Valentino en desempeño de asesores
+        if (val === 'ivan' || val === 'iván' || val === 'gabriela' || val === 'valentino') {
           const celdasRestantes = cols.slice(idx + 1).filter(c => c !== '');
           const conv = celdasRestantes[0] ? limpiarNumero(celdasRestantes[0]) : 0;
           const part = celdasRestantes[1] ? celdasRestantes[1].trim() : '0%';
@@ -360,6 +361,7 @@ export default function App() {
         canal.includes(permitido) || id.includes(permitido)
       );
       
+      // Excluye a los vendedores para que no se muestren como tarjetas principales
       const esExcluido = 
         canal.includes('ritmo') ||
         canal.includes('ranking') ||
@@ -367,6 +369,7 @@ export default function App() {
         canal === 'gabriela' ||
         canal === 'iván' ||
         canal === 'ivan' ||
+        canal === 'valentino' || // 👈 Excluido de canales principales
         canal.includes('conversaciones') ||
         canal.includes('leads') ||
         canal.includes('etapa') ||
@@ -377,9 +380,10 @@ export default function App() {
       return esCanalValido && !esExcluido;
     });
 
+    // Filtra las filas de los vendedores (ahora incluye a Valentino)
     const vendedores = filas.filter(f => {
       const canal = (f.canal || '').trim().toLowerCase();
-      return canal === 'gabriela' || canal === 'iván' || canal === 'ivan';
+      return canal === 'gabriela' || canal === 'iván' || canal === 'ivan' || canal === 'valentino'; // 👈 Agregado aquí
     });
 
     const canalesConVendedores = canalesPrincipales.map(canal => {
@@ -391,6 +395,7 @@ export default function App() {
       const metaNum = limpiarNumero(canal.meta || canal["Objetivo del mes"] || canal["objetivo del mes"]);
       let acumNum = limpiarNumero(canal.acumulado);
 
+      // Aquí se cargan en la tarjeta: Gabriela, Ivan y Valentino
       const vendedoresCanal = esVentaTelefonica ? vendedores.map(v => ({
         nombre: v.canal,
         acumulado: limpiarNumero(v.acumulado),

@@ -12,6 +12,10 @@ export const URLS = {
     label: "Embudo Cliengo Octubre",
     esActivo: true
   },
+  ranking_octubre: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1052015353&single=true&output=csv",
+    label: "Ranking Productos Octubre"
+  },
 
   // 📚 Históricos
   septiembre: {

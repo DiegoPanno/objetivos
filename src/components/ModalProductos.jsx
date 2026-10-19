@@ -10,6 +10,7 @@ export default function ModalProductos({ isOpen, onClose, productos = [] }) {
   const CANALES = [
     { id: 'Gabriela', label: 'Gabriela (Tel)' },
     { id: 'Iván', label: 'Iván (Tel)' },
+    { id: 'Valentino', label: 'Valentino (Tel)' },
     { id: 'Mercado Libre', label: 'Mercado Libre' },
     { id: 'BAPRO', label: 'BAPRO' },
     { id: 'Web Ámbito', label: 'Web Ámbito' },
@@ -42,7 +43,7 @@ export default function ModalProductos({ isOpen, onClose, productos = [] }) {
           </div>
           <button 
             onClick={onClose}
-            className="text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition"
+            className="text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer"
           >
             ✕ Cerrar
           </button>
@@ -58,7 +59,7 @@ export default function ModalProductos({ isOpen, onClose, productos = [] }) {
                   setCanalActivo(c.id);
                   setBusqueda('');
                 }}
-                className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition ${
+                className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer ${
                   canalActivo === c.id
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
                     : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'

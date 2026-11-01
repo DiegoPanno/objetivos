@@ -89,7 +89,7 @@ export default function CyberMondayModule({ datos, datosCliengo, mes, productos 
         <div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-0.5 text-[10px] font-black uppercase tracking-wider bg-[#c40050] text-white rounded-full shadow-lg shadow-[#c40050]/40 animate-pulse">
-              ⚡ LIVE CYBER WEEK
+              ⚡ LIVE CYBER MONDAY
             </span>
             <span className="text-xs text-amber-300 font-bold tracking-wide">
               2 al 8 de Noviembre • Ámbito Oficial

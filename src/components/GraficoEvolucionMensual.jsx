@@ -1,163 +1,179 @@
 // src/components/GraficoEvolucionMensual.jsx
 import React from 'react';
 
-export default function GraficoEvolucionMensual({ 
-  mesActual, 
+const formatearMontoCorto = (monto) => {
+  if (!monto && monto !== 0) return '$0';
+  const valor = Number(monto);
+  if (valor >= 1000000) {
+    return `${(valor / 1000000).toFixed(1)}M`;
+  }
+  if (valor >= 1000) {
+    return `${Math.round(valor / 1000)}K`;
+  }
+  return `$${valor}`;
+};
+
+export default function GraficoEvolucionMensual({
+  mesActual,
   datosActuales,
-  proyeccionFinalMes,
+  proyeccionFinalMes = 0,
   datosPorMes = {}
 }) {
-  // 1. Extraemos acumulados históricos
-  const facturadoJunio = datosPorMes['junio']?.globales?.totalAcumulado || 35748934;
-  const facturadoJulio = datosPorMes['julio']?.globales?.totalAcumulado || 46013841;
-  const facturadoAgosto = datosPorMes['agosto']?.globales?.totalAcumulado || 68617089;
-  const facturadoSeptiembre = datosPorMes['septiembre']?.globales?.totalAcumulado || 90500000;
-  const facturadoOctubre = datosPorMes['octubre']?.globales?.totalAcumulado || 96466552;
-
-  const nombreMesActual = mesActual?.label ? mesActual.label.split(' ')[0] : 'Noviembre';
-
-  // Barras de meses históricos cerrados (incluye Junio)
-  const historicos = [
-    { mes: 'Junio', facturado: facturadoJunio },
-    { mes: 'Julio', facturado: facturadoJulio },
-    { mes: 'Agosto', facturado: facturadoAgosto },
-    { mes: 'Septiembre', facturado: facturadoSeptiembre },
-    { mes: 'Octubre', facturado: facturadoOctubre }
+  // Configuración de meses con su paleta de colores individual original
+  const mesesOrdenados = [
+    { 
+      clave: 'junio', 
+      label: 'Junio', 
+      corto: 'Jun',
+      colorBarra: 'from-blue-600 to-blue-400' 
+    },
+    { 
+      clave: 'julio', 
+      label: 'Julio', 
+      corto: 'Jul',
+      colorBarra: 'from-cyan-600 to-cyan-400' 
+    },
+    { 
+      clave: 'agosto', 
+      label: 'Agosto', 
+      corto: 'Ago',
+      colorBarra: 'from-purple-600 to-purple-400' 
+    },
+    { 
+      clave: 'septiembre', 
+      label: 'Septiembre', 
+      corto: 'Sep',
+      colorBarra: 'from-sky-600 to-sky-400' 
+    },
+    { 
+      clave: 'octubre', 
+      label: 'Octubre', 
+      corto: 'Oct',
+      colorBarra: 'from-indigo-500 to-violet-400' 
+    },
+    { 
+      clave: 'noviembre', 
+      label: 'Noviembre', 
+      corto: 'Nov',
+      colorBarra: 'from-emerald-600 to-teal-400' 
+    },
   ];
 
-  // 2. Datos reales y proyección del mes en curso (Noviembre)
-  const acumuladoActual = datosActuales?.globales?.totalAcumulado || datosActuales?.totalAcumulado || 0;
-  const proyeccion = proyeccionFinalMes || 0;
+  // Extraer valores de cada mes
+  const datosBarras = mesesOrdenados.map((m) => {
+    const esMesActual = m.clave === 'noviembre';
+    
+    let facturado = 0;
+    if (esMesActual) {
+      facturado = datosActuales?.globales?.totalAcumulado || 0;
+    } else {
+      facturado = datosPorMes[m.clave]?.globales?.totalAcumulado || 0;
+    }
 
-  const actual = {
-    mes: nombreMesActual,
-    acumulado: acumuladoActual,
-    proyeccion: proyeccion,
-  };
+    return {
+      ...m,
+      esMesActual,
+      facturado,
+      proyeccion: esMesActual ? proyeccionFinalMes : 0,
+    };
+  });
 
-  const todosLosMeses = [
-    ...historicos,
-    { mes: actual.mes, facturado: actual.acumulado, esActual: true }
-  ];
-
-  // 3. Definir escala máxima del gráfico
-  const maxValorReal = Math.max(
-    ...historicos.map(h => h.facturado),
-    actual.acumulado,
-    actual.proyeccion
+  const maxFacturado = Math.max(
+    ...datosBarras.map((d) => Math.max(d.facturado, d.proyeccion)),
+    100000000
   );
 
-  const divisiones = 4;
-  const maxEscala = Math.ceil((maxValorReal * 1.15) / 10000000) * 10000000 || 120000000;
-
-  const formatearK = (valor) => {
-    if (!valor) return '$0';
-    if (valor >= 1000000) {
-      return (valor / 1000000).toFixed(1) + 'M';
-    }
-    return (valor / 1000).toFixed(0) + 'K';
-  };
-
-  const colores = {
-    'Junio': { bg: '#3b82f6', bgLight: '#3b82f640', text: '#60a5fa' },
-    'Julio': { bg: '#06b6d4', bgLight: '#06b6d440', text: '#22d3ee' },
-    'Agosto': { bg: '#8b5cf6', bgLight: '#8b5cf640', text: '#a78bfa' },
-    'Septiembre': { bg: '#38bdf8', bgLight: '#38bdf840', text: '#7dd3fc' },
-    'Octubre': { bg: '#818cf8', bgLight: '#818cf840', text: '#a5b4fc' },
-    'Noviembre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
-  };
-
   return (
-    <div className="bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
-      <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-6 text-center">
-        📊 Evolución Mensual
-      </h3>
-
-      <div className="relative h-60 px-2">
-        {/* LÍNEAS DE GRILLA HORIZONTALES */}
-        <div className="absolute inset-x-0 bottom-0 h-44 flex flex-col justify-between pointer-events-none z-0">
-          {Array.from({ length: divisiones + 1 }).map((_, idx) => (
-            <div 
-              key={idx} 
-              className="w-full border-b border-slate-800/80 border-dashed"
-            />
-          ))}
+    <section className="bg-slate-900/90 border border-slate-800 p-4 sm:p-6 rounded-3xl shadow-xl w-full overflow-hidden">
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">📊</span>
+          <h2 className="text-base sm:text-lg font-black tracking-wider text-slate-100 uppercase">
+            Evolución Mensual
+          </h2>
         </div>
+        <span className="text-[10px] sm:text-xs font-bold text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+          Últimos 6 meses
+        </span>
+      </div>
 
-        {/* BARRAS DEL GRÁFICO */}
-        <div className="relative z-10 flex items-end justify-around h-full gap-3 sm:gap-4">
-          {todosLosMeses.map((item, idx) => {
-            const esActual = item.esActual || false;
-            const altura = maxEscala > 0 ? (item.facturado / maxEscala) * 100 : 0;
-            const color = colores[item.mes] || colores['Noviembre'];
-            
-            const alturaProyeccion = esActual && maxEscala > 0 ? (actual.proyeccion / maxEscala) * 100 : 0;
-            const cabeTextoAdentro = altura > 22;
+      {/* ÁREA DE GRÁFICO */}
+      <div className="w-full">
+        <div className="grid grid-cols-6 gap-1.5 sm:gap-3 items-end h-52 sm:h-60 w-full pt-8 pb-2">
+          {datosBarras.map((m) => {
+            const porcentajeAltura = Math.min(Math.max((m.facturado / maxFacturado) * 100, 4), 100);
+            const porcentajeAlturaProy = m.esMesActual
+              ? Math.min(Math.max((m.proyeccion / maxFacturado) * 100, 4), 100)
+              : 0;
 
             return (
-              <div key={idx} className="flex-1 flex flex-col items-center max-w-[110px] h-full justify-end">
-                {/* NOMBRE DEL MES */}
-                <span className="text-xs sm:text-base font-bold mb-2 truncate" style={{ color: color.text }}>
-                  {item.mes}
-                  {esActual && ' 🔥'}
-                </span>
+              <div key={m.clave} className="flex flex-col items-center h-full justify-end relative group">
+                
+                {/* ETIQUETA FLOTANTE CON EL MONTO FACTURADO */}
+                <div className="mb-1.5 text-center flex flex-col items-center">
+                  {m.esMesActual && m.proyeccion > 0 && (
+                    <span className="text-[9px] sm:text-[11px] font-semibold text-emerald-400 whitespace-nowrap leading-tight">
+                      Proy. {formatearMontoCorto(m.proyeccion)}
+                    </span>
+                  )}
+                  <span
+                    className={`text-[10px] sm:text-xs font-black whitespace-nowrap leading-tight ${
+                      m.esMesActual ? 'text-emerald-300' : 'text-slate-100'
+                    }`}
+                  >
+                    {formatearMontoCorto(m.facturado)}
+                  </span>
+                </div>
 
-                {/* CONTENEDOR DE BARRAS */}
-                <div className="relative w-full flex flex-col items-center justify-end h-44">
-                  {/* BARRA DE PROYECCIÓN (SOLO MES ACTUAL) */}
-                  {esActual && actual.proyeccion > 0 && (
-                    <div 
-                      className="absolute w-full max-w-[55px] rounded-t-lg"
-                      style={{ 
-                        height: `${Math.max(alturaProyeccion, 2)}%`,
-                        minHeight: '4px',
-                        backgroundColor: color.bgLight,
-                        border: `1px dashed ${color.bg}`,
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                      }}
-                    >
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[11px] font-bold text-emerald-400/70 whitespace-nowrap">
-                        Proy. {formatearK(actual.proyeccion)}
-                      </span>
-                    </div>
+                {/* CONTENEDOR DE LA BARRA */}
+                <div className="w-full max-w-[42px] sm:max-w-[48px] h-full flex items-end justify-center relative">
+                  
+                  {/* BARRA DE PROYECCIÓN DE FONDO (SÓLO NOVIEMBRE) */}
+                  {m.esMesActual && (
+                    <div
+                      className="absolute bottom-0 w-full rounded-t-lg bg-emerald-500/15 border-t-2 border-dashed border-emerald-400/60 transition-all duration-1000 pointer-events-none"
+                      style={{ height: `${porcentajeAlturaProy}%` }}
+                    ></div>
                   )}
 
-                  {/* BARRA PRINCIPAL */}
-                  <div 
-                    className="w-full max-w-[55px] rounded-t-lg transition-all duration-1000 relative"
-                    style={{ 
-                      height: `${Math.max(altura, 2)}%`,
-                      minHeight: '4px',
-                      backgroundColor: color.bg,
-                      opacity: esActual ? 1 : 0.85,
-                      zIndex: 10,
-                    }}
-                  >
-                    {/* VALOR SI CABE ADENTRO */}
-                    {cabeTextoAdentro && (
-                      <span 
-                        className="absolute inset-0 flex items-center justify-center text-xs sm:text-[15px] font-black text-white drop-shadow-lg"
-                        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
-                      >
-                        {formatearK(item.facturado)}
-                      </span>
-                    )}
-
-                    {/* VALOR SI NO CABE ADENTRO */}
-                    {!cabeTextoAdentro && (
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs sm:text-[15px] font-bold text-slate-200 whitespace-nowrap">
-                        {formatearK(item.facturado)}
-                      </span>
-                    )}
-                  </div>
+                  {/* BARRA CON SU COLOR INDIVIDUAL */}
+                  <div
+                    className={`w-full rounded-t-lg transition-all duration-1000 bg-gradient-to-t ${m.colorBarra} ${
+                      m.esMesActual ? 'shadow-[0_0_15px_rgba(16,185,129,0.35)]' : 'hover:brightness-110'
+                    }`}
+                    style={{ height: `${porcentajeAltura}%` }}
+                  ></div>
                 </div>
+
+                {/* ETIQUETA DEL MES RESPONSIVE */}
+                <span
+                  className={`mt-2 font-bold tracking-tight text-center leading-none ${
+                    m.esMesActual
+                      ? 'text-emerald-300 font-extrabold text-[11px] sm:text-xs'
+                      : 'text-slate-300 text-[10px] sm:text-xs'
+                  }`}
+                >
+                  <span className="sm:hidden">{m.corto}</span>
+                  <span className="hidden sm:inline">{m.label}</span>
+                </span>
               </div>
             );
           })}
         </div>
       </div>
-    </div>
+
+      {/* FOOTER */}
+      <div className="flex justify-between items-center text-[10px] sm:text-xs text-slate-500 pt-3 border-t border-slate-800/80 mt-2">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded bg-indigo-500 inline-block"></span>
+          <span>Histórico cerrado</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded bg-emerald-400 inline-block"></span>
+          <span>Noviembre en curso</span>
+        </span>
+      </div>
+    </section>
   );
 }

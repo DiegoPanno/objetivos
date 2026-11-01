@@ -10,7 +10,6 @@ export default function ModalProductos({ isOpen, onClose, productos = [] }) {
   const CANALES = [
     { id: 'Gabriela', label: 'Gabriela (Tel)' },
     { id: 'Iván', label: 'Iván (Tel)' },
-    { id: 'Valentino', label: 'Valentino (Tel)' },
     { id: 'Mercado Libre', label: 'Mercado Libre' },
     { id: 'BAPRO', label: 'BAPRO' },
     { id: 'Web Ámbito', label: 'Web Ámbito' },

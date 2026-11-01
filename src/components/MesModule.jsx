@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import ResumenEjecutivo from './ResumenEjecutivo';
 import GraficoEvolucionMensual from './GraficoEvolucionMensual';
 import ModalProductos from './ModalProductos';
+import CyberMondayModule from './CyberMondayModule';
 
 const limpiarNumero = (valor) => {
   if (!valor && valor !== 0) return 0;
@@ -32,15 +33,15 @@ export default function MesModule({
     ritmoDiarioGlobalRequerido = 0, 
     ritmoDiarioGlobalActualCelda = 0, 
     diaDeVenta = 1 
-  } = datos.globales || {};
+  } = datos?.globales || {};
 
-  const canalesActivos = datos.canales || [];
+  const canalesActivos = datos?.canales || [];
   const diasTotalesMes = mes?.dias || 30;
 
   // Suma directa de litros de los canales
   const sumaLitrosCanales = canalesActivos.reduce((acc, c) => acc + limpiarNumero(c.litros), 0);
 
-  const totalLitrosFinal = (datos.globales?.totalLitros && limpiarNumero(datos.globales.totalLitros) > 0)
+  const totalLitrosFinal = (datos?.globales?.totalLitros && limpiarNumero(datos.globales.totalLitros) > 0)
     ? limpiarNumero(datos.globales.totalLitros)
     : sumaLitrosCanales;
 
@@ -97,6 +98,16 @@ export default function MesModule({
           </span>
         </div>
       </section>
+
+      {/* ⚡ CENTRO DE OPERACIONES CYBER MONDAY (Activo durante Noviembre con Top 5 en vivo) */}
+      {esActivo && (
+        <CyberMondayModule 
+          datos={datos}
+          datosCliengo={datosCliengo}
+          mes={mes}
+          productos={productosSemana}
+        />
+      )}
 
       {/* 📈 GRÁFICO DE EVOLUCIÓN MENSUAL */}
       {esActivo && (
@@ -180,7 +191,6 @@ export default function MesModule({
             </p>
           </div>
 
-          {/* BOTÓN VISIBLE PERMANENTE PARA ACCEDER AL DETALLE DE ARTÍCULOS */}
           <button
             onClick={() => setModalProductosAbierto(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-black rounded-xl shadow-lg shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer"
@@ -203,7 +213,6 @@ export default function MesModule({
             const margen = limpiarNumero(c.margen);
             const litros = limpiarNumero(c.litros);
 
-            // Proyección individual por canal según el día de venta transcurrido
             const promedioCanalPorDia = diaDeVenta > 0 ? acum / diaDeVenta : 0;
             const proyeccionCanal = promedioCanalPorDia * diasTotalesMes;
             const brechaProyeccionCanal = proyeccionCanal - metaCanal;
@@ -231,7 +240,6 @@ export default function MesModule({
             const enRitmo = diarioActual >= diarioReq;
             const brechaDiaria = diarioReq - diarioActual;
 
-            // Cálculos de Share
             const shareVentas = totalAcumulado > 0 ? ((acum / totalAcumulado) * 100).toFixed(1) : "0.0";
             const shareObjetivo = totalMeta > 0 ? ((metaCanal / totalMeta) * 100).toFixed(1) : "0.0";
             
@@ -363,7 +371,7 @@ export default function MesModule({
                       </div>
                     )}
                     
-                    {/* VENDEDORES */}
+                    {/* VENDEDORES (Gabriela e Iván) */}
                     {esVentaTelefonica && vendedores.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-800/60">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">

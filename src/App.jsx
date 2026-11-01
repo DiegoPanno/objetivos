@@ -4,7 +4,7 @@ import { URLS, MESES_DISPONIBLES } from './data/urls';
 import MesModule from './components/MesModule';
 
 export default function App() {
-  const [mesSeleccionado, setMesSeleccionado] = useState('octubre');
+  const [mesSeleccionado, setMesSeleccionado] = useState('noviembre');
   const [datosPorMes, setDatosPorMes] = useState({});
   const [cargando, setCargando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
@@ -30,7 +30,6 @@ export default function App() {
     const c = String(canalRaw || '').toLowerCase().trim();
     if (c.includes('gabi') || c.includes('gabriela')) return 'Gabriela';
     if (c.includes('ivan') || c.includes('iván')) return 'Iván';
-    if (c.includes('valen') || c.includes('valentino')) return 'Valentino';
     if (c.includes('meli') || c.includes('mercado libre')) return 'Mercado Libre';
     if (c.includes('bapro') || c.includes('provincia')) return 'BAPRO';
     if (c.includes('web') || c.includes('ambito') || c.includes('ámbito')) return 'Web Ámbito';
@@ -158,9 +157,10 @@ export default function App() {
         }
       }
 
+      // Solo evaluamos a Gabriela e Iván
       cols.forEach((col, idx) => {
         const val = col.trim().toLowerCase();
-        if (val.includes('ivan') || val.includes('iván') || val.includes('gabriela') || val.includes('valentino') || val.includes('valen')) {
+        if (val.includes('ivan') || val.includes('iván') || val.includes('gabriela') || val.includes('gabi')) {
           const celdasRestantes = cols.slice(idx + 1).filter(c => c !== '');
           const conv = celdasRestantes[0] ? limpiarNumero(celdasRestantes[0]) : 0;
           const part = celdasRestantes[1] ? celdasRestantes[1].trim() : '0%';
@@ -364,9 +364,7 @@ export default function App() {
         canal.includes('gabriela') || 
         canal.includes('gabi') || 
         canal.includes('iván') || 
-        canal.includes('ivan') || 
-        canal.includes('valentino') || 
-        canal.includes('valen');
+        canal.includes('ivan');
 
       const esExcluido = 
         canal.includes('ritmo') ||
@@ -383,15 +381,13 @@ export default function App() {
       return esCanalValido && !esExcluido;
     });
 
-    // Detecta vendedores incluso si figuran con nombre y apellido
+    // Detecta únicamente a Gabriela e Iván
     const vendedores = filas.filter(f => {
       const canal = (f.canal || '').trim().toLowerCase();
       return canal.includes('gabriela') || 
              canal.includes('gabi') || 
              canal.includes('iván') || 
-             canal.includes('ivan') || 
-             canal.includes('valentino') || 
-             canal.includes('valen');
+             canal.includes('ivan');
     });
 
     const canalesConVendedores = canalesPrincipales.map(canal => {

@@ -11,22 +11,21 @@ export default function GraficoEvolucionMensual({
   const facturadoJunio = datosPorMes['junio']?.globales?.totalAcumulado || 35748934;
   const facturadoJulio = datosPorMes['julio']?.globales?.totalAcumulado || 46013841;
   const facturadoAgosto = datosPorMes['agosto']?.globales?.totalAcumulado || 68617089;
-  const facturadoSeptiembre = datosPorMes['septiembre']?.globales?.totalAcumulado || 0;
+  const facturadoSeptiembre = datosPorMes['septiembre']?.globales?.totalAcumulado || 90500000;
+  const facturadoOctubre = datosPorMes['octubre']?.globales?.totalAcumulado || 96466552;
 
-  const nombreMesActual = mesActual?.label ? mesActual.label.split(' ')[0] : 'Octubre';
+  const nombreMesActual = mesActual?.label ? mesActual.label.split(' ')[0] : 'Noviembre';
 
-  // Si el mes en curso es Octubre, Septiembre pasa a ser histórico
+  // Barras de meses históricos cerrados (incluye Junio)
   const historicos = [
     { mes: 'Junio', facturado: facturadoJunio },
     { mes: 'Julio', facturado: facturadoJulio },
     { mes: 'Agosto', facturado: facturadoAgosto },
+    { mes: 'Septiembre', facturado: facturadoSeptiembre },
+    { mes: 'Octubre', facturado: facturadoOctubre }
   ];
 
-  if (nombreMesActual.toLowerCase() === 'octubre' && facturadoSeptiembre > 0) {
-    historicos.push({ mes: 'Septiembre', facturado: facturadoSeptiembre });
-  }
-
-  // 2. Datos reales y proyección del mes en curso
+  // 2. Datos reales y proyección del mes en curso (Noviembre)
   const acumuladoActual = datosActuales?.globales?.totalAcumulado || datosActuales?.totalAcumulado || 0;
   const proyeccion = proyeccionFinalMes || 0;
 
@@ -49,7 +48,7 @@ export default function GraficoEvolucionMensual({
   );
 
   const divisiones = 4;
-  const maxEscala = Math.ceil((maxValorReal * 1.15) / 10000000) * 10000000 || 80000000;
+  const maxEscala = Math.ceil((maxValorReal * 1.15) / 10000000) * 10000000 || 120000000;
 
   const formatearK = (valor) => {
     if (!valor) return '$0';
@@ -64,7 +63,8 @@ export default function GraficoEvolucionMensual({
     'Julio': { bg: '#06b6d4', bgLight: '#06b6d440', text: '#22d3ee' },
     'Agosto': { bg: '#8b5cf6', bgLight: '#8b5cf640', text: '#a78bfa' },
     'Septiembre': { bg: '#38bdf8', bgLight: '#38bdf840', text: '#7dd3fc' },
-    'Octubre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
+    'Octubre': { bg: '#818cf8', bgLight: '#818cf840', text: '#a5b4fc' },
+    'Noviembre': { bg: '#10b981', bgLight: '#10b98140', text: '#34d399' },
   };
 
   return (
@@ -85,19 +85,19 @@ export default function GraficoEvolucionMensual({
         </div>
 
         {/* BARRAS DEL GRÁFICO */}
-        <div className="relative z-10 flex items-end justify-around h-full gap-4">
+        <div className="relative z-10 flex items-end justify-around h-full gap-3 sm:gap-4">
           {todosLosMeses.map((item, idx) => {
             const esActual = item.esActual || false;
             const altura = maxEscala > 0 ? (item.facturado / maxEscala) * 100 : 0;
-            const color = colores[item.mes] || colores['Octubre'];
+            const color = colores[item.mes] || colores['Noviembre'];
             
             const alturaProyeccion = esActual && maxEscala > 0 ? (actual.proyeccion / maxEscala) * 100 : 0;
             const cabeTextoAdentro = altura > 22;
 
             return (
-              <div key={idx} className="flex-1 flex flex-col items-center max-w-[120px] h-full justify-end">
+              <div key={idx} className="flex-1 flex flex-col items-center max-w-[110px] h-full justify-end">
                 {/* NOMBRE DEL MES */}
-                <span className="text-base font-bold mb-2" style={{ color: color.text }}>
+                <span className="text-xs sm:text-base font-bold mb-2 truncate" style={{ color: color.text }}>
                   {item.mes}
                   {esActual && ' 🔥'}
                 </span>
@@ -107,7 +107,7 @@ export default function GraficoEvolucionMensual({
                   {/* BARRA DE PROYECCIÓN (SOLO MES ACTUAL) */}
                   {esActual && actual.proyeccion > 0 && (
                     <div 
-                      className="absolute w-full max-w-[60px] rounded-t-lg"
+                      className="absolute w-full max-w-[55px] rounded-t-lg"
                       style={{ 
                         height: `${Math.max(alturaProyeccion, 2)}%`,
                         minHeight: '4px',
@@ -118,7 +118,7 @@ export default function GraficoEvolucionMensual({
                         transform: 'translateX(-50%)',
                       }}
                     >
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[12px] font-bold text-emerald-400/70 whitespace-nowrap">
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[11px] font-bold text-emerald-400/70 whitespace-nowrap">
                         Proy. {formatearK(actual.proyeccion)}
                       </span>
                     </div>
@@ -126,7 +126,7 @@ export default function GraficoEvolucionMensual({
 
                   {/* BARRA PRINCIPAL */}
                   <div 
-                    className="w-full max-w-[60px] rounded-t-lg transition-all duration-1000 relative"
+                    className="w-full max-w-[55px] rounded-t-lg transition-all duration-1000 relative"
                     style={{ 
                       height: `${Math.max(altura, 2)}%`,
                       minHeight: '4px',
@@ -138,7 +138,7 @@ export default function GraficoEvolucionMensual({
                     {/* VALOR SI CABE ADENTRO */}
                     {cabeTextoAdentro && (
                       <span 
-                        className="absolute inset-0 flex items-center justify-center text-[15px] font-black text-white drop-shadow-lg"
+                        className="absolute inset-0 flex items-center justify-center text-xs sm:text-[15px] font-black text-white drop-shadow-lg"
                         style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
                       >
                         {formatearK(item.facturado)}
@@ -147,7 +147,7 @@ export default function GraficoEvolucionMensual({
 
                     {/* VALOR SI NO CABE ADENTRO */}
                     {!cabeTextoAdentro && (
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[15px] font-bold text-slate-200 whitespace-nowrap">
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs sm:text-[15px] font-bold text-slate-200 whitespace-nowrap">
                         {formatearK(item.facturado)}
                       </span>
                     )}

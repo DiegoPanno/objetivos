@@ -2,29 +2,39 @@
 import React, { useState } from 'react';
 
 export default function CyberMondayModule({ datos, datosCliengo, mes, productos = [] }) {
-  const { totalAcumulado = 0, ritmoDiarioGlobalRequerido = 0 } = datos?.globales || {};
+  const { 
+    totalAcumulado = 0, 
+    ritmoDiarioGlobalActualCelda = 0, 
+    ritmoDiarioGlobalRequerido = 0 
+  } = datos?.globales || {};
+  
   const canales = datos?.canales || [];
 
   // Pestaña activa para el Top 5 de productos
   const [canalTopActivo, setCanalTopActivo] = useState('Mercado Libre');
 
-  // 1. CÁLCULO DE RUN-RATE HORARIO
+  // 1. CÁLCULO NORMALIZADO DE RUN-RATE HORARIO (Jornada de 12 horas comerciales)
   const ahora = new Date();
   const horaActual = ahora.getHours();
+  const minutosActuales = ahora.getMinutes();
   const horaInicio = 8;
   const horaFin = 20;
-  const horasTotalesJornada = horaFin - horaInicio;
-  
-  let horasTranscurridas = 1;
-  if (horaActual >= horaInicio && horaActual <= horaFin) {
-    horasTranscurridas = Math.max(horaActual - horaInicio, 1);
-  } else if (horaActual > horaFin) {
-    horasTranscurridas = horasTotalesJornada;
-  }
+  const horasTotalesJornada = horaFin - horaInicio; // 12 horas
 
-  const metaHorariaEsperada = ritmoDiarioGlobalRequerido > 0 ? (ritmoDiarioGlobalRequerido / horasTotalesJornada) : 0;
-  const ritmoRealPorHora = totalAcumulado / horasTranscurridas;
-  const porcentajeCumplimientoHora = metaHorariaEsperada > 0 ? (ritmoRealPorHora / metaHorariaEsperada) * 100 : 0;
+  // Meta por hora requerida para cumplir el objetivo del día ($4.066.667 / 12 hs = $338.889/h)
+  const metaHorariaEsperada = ritmoDiarioGlobalRequerido > 0 
+    ? (ritmoDiarioGlobalRequerido / horasTotalesJornada) 
+    : 0;
+
+  // Velocidad horaria real derivada del ritmo diario efectivo de la empresa
+  const ritmoRealPorHora = ritmoDiarioGlobalActualCelda > 0 
+    ? (ritmoDiarioGlobalActualCelda / horasTotalesJornada) 
+    : 0;
+
+  const porcentajeCumplimientoHora = metaHorariaEsperada > 0 
+    ? (ritmoRealPorHora / metaHorariaEsperada) * 100 
+    : 0;
+
   const velocidadOptima = porcentajeCumplimientoHora >= 100;
 
   // 2. EXTRACCIÓN Y CRUCE DE ASESORES (Gabriela e Iván)
@@ -76,7 +86,7 @@ export default function CyberMondayModule({ datos, datosCliengo, mes, productos 
     .slice(0, 5);
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-[#c40050]/20 via-slate-900 to-slate-950 border-2 border-[#c40050]/50 p-5 sm:p-6 rounded-3xl shadow-[0_0_35px_rgba(196,0,80,0.25)] space-y-5">
+    <div className="relative overflow-hidden bg-gradient-to-br from-[#c40050]/20 via-slate-900 to-slate-950 border-2 border-[#c40050]/50 p-4 sm:p-6 rounded-3xl shadow-[0_0_35px_rgba(196,0,80,0.25)] space-y-5">
       
       {/* DETALLE SUPERIOR BICOLOR */}
       <div className="absolute top-0 inset-x-0 h-1.5 flex">
@@ -87,11 +97,11 @@ export default function CyberMondayModule({ datos, datosCliengo, mes, productos 
       {/* HEADER CYBER CON BRANDING ÁMBITO */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#c40050]/30 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-0.5 text-[10px] font-black uppercase tracking-wider bg-[#c40050] text-white rounded-full shadow-lg shadow-[#c40050]/40 animate-pulse">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-[#c40050] text-white rounded-full shadow-lg shadow-[#c40050]/40 animate-pulse whitespace-nowrap">
               ⚡ LIVE CYBER MONDAY
             </span>
-            <span className="text-xs text-amber-300 font-bold tracking-wide">
+            <span className="text-[11px] sm:text-xs text-amber-300 font-bold tracking-wide">
               2 al 8 de Noviembre • Ámbito Oficial
             </span>
           </div>
@@ -100,7 +110,7 @@ export default function CyberMondayModule({ datos, datosCliengo, mes, productos 
           </h2>
         </div>
 
-        <div className="flex items-center gap-2.5 bg-slate-950/80 px-4 py-2 rounded-2xl border border-[#ffd100]/40 text-xs shadow-inner">
+        <div className="flex items-center gap-2.5 bg-slate-950/80 px-3.5 py-1.5 rounded-2xl border border-[#ffd100]/40 text-xs shadow-inner">
           <span className="w-2.5 h-2.5 rounded-full bg-[#ffd100] animate-ping"></span>
           <span className="font-extrabold text-[#ffd100]">Monitoreo en Vivo</span>
         </div>
@@ -181,8 +191,8 @@ export default function CyberMondayModule({ datos, datosCliengo, mes, productos 
           </div>
 
           <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
-            <span>08:00 a 20:00 hs</span>
-            <span>Hora {horaActual}:00 ({horasTranscurridas}h computadas)</span>
+            <span>Ventana activa: 08:00 a 20:00 hs</span>
+            <span>Hora {horaActual}:{minutosActuales < 10 ? `0${minutosActuales}` : minutosActuales}</span>
           </div>
         </div>
 

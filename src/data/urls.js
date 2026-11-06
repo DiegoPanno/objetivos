@@ -16,6 +16,14 @@ export const URLS = {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=313334652&single=true&output=csv",
     label: "Ranking Productos Noviembre"
   },
+
+  // 🚀 DATOS ANALYTICS GA4 NOVIEMBRE
+  analytics_noviembre: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1464605514&single=true&output=csv",
+    label: "Analytics GA4 Noviembre",
+    esActivo: true
+  },
+  
   // 📚 Históricos
   octubre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1162219836&single=true&output=csv",

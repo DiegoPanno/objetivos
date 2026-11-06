@@ -11,6 +11,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
+  const [datosAnalyticsPorMes, setDatosAnalyticsPorMes] = useState({});
   const [productosPorMes, setProductosPorMes] = useState({});
 
   const limpiarNumero = (valor) => {
@@ -157,7 +158,6 @@ export default function App() {
         }
       }
 
-      // Solo evaluamos a Gabriela e Iván
       cols.forEach((col, idx) => {
         const val = col.trim().toLowerCase();
         if (val.includes('ivan') || val.includes('iván') || val.includes('gabriela') || val.includes('gabi')) {
@@ -246,12 +246,43 @@ export default function App() {
     };
   };
 
+  // 🚀 PARSER DE LA PESTAÑA Analytics_Noviembre
+  const procesarAnalyticsDesdeCSV = (csvText) => {
+    if (!csvText) return { canales: [], paginas: [] };
+    const lineas = csvText.split('\n').map(l => l.replace(/\r/g, '').trim()).filter(Boolean);
+    if (lineas.length < 2) return { canales: [], paginas: [] };
+
+    const canales = [];
+    const paginas = [];
+
+    lineas.slice(1).forEach(linea => {
+      const cols = linea.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      // Columnas A y B: Canal, Sesiones
+      if (cols[0] && cols[1] && !isNaN(Number(cols[1])) && Number(cols[1]) > 0) {
+        canales.push({
+          canal: cols[0],
+          sesiones: Number(cols[1])
+        });
+      }
+      // Columnas D y E: URL_Pagina, Vistas (índices 3 y 4)
+      if (cols[3] && cols[4] && !isNaN(Number(cols[4])) && Number(cols[4]) > 0) {
+        paginas.push({
+          url: cols[3],
+          vistas: Number(cols[4])
+        });
+      }
+    });
+
+    return { canales, paginas };
+  };
+
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
     const funnels = MESES_DISPONIBLES.map(m => `funnel_${m}`).filter(f => URLS[f]);
     const rankings = MESES_DISPONIBLES.map(m => `ranking_${m}`).filter(r => URLS[r]);
-    const mesesACargar = [...MESES_DISPONIBLES, ...funnels, ...rankings];
+    const analyticsKeys = MESES_DISPONIBLES.map(m => `analytics_${m}`).filter(a => URLS[a]);
+    const mesesACargar = [...MESES_DISPONIBLES, ...funnels, ...rankings, ...analyticsKeys];
     
     const promesas = mesesACargar.map(clave => {
       const url = URLS[clave]?.url;
@@ -271,6 +302,7 @@ export default function App() {
         const nuevosDatos = {};
         const nuevosCliengo = {};
         const nuevosProductos = {};
+        const nuevosAnalytics = {};
         let huboError = false;
 
         resultados.forEach(({ clave, csv, error }) => {
@@ -291,12 +323,19 @@ export default function App() {
             nuevosProductos[nombreMes] = procesarRankingDesdeCSV(csv);
             return;
           }
+
+          if (clave.startsWith('analytics_')) {
+            const nombreMes = clave.replace('analytics_', '');
+            nuevosAnalytics[nombreMes] = procesarAnalyticsDesdeCSV(csv);
+            return;
+          }
           
           const diasDelMes = URLS[clave]?.dias || 30;
           nuevosDatos[clave] = procesarMes(csv, diasDelMes);
         });
 
         setDatosCliengoPorMes(nuevosCliengo);
+        setDatosAnalyticsPorMes(nuevosAnalytics);
         setDatosPorMes(nuevosDatos);
         setProductosPorMes(nuevosProductos);
 
@@ -381,7 +420,6 @@ export default function App() {
       return esCanalValido && !esExcluido;
     });
 
-    // Detecta únicamente a Gabriela e Iván
     const vendedores = filas.filter(f => {
       const canal = (f.canal || '').trim().toLowerCase();
       return canal.includes('gabriela') || 
@@ -413,49 +451,6 @@ export default function App() {
         ? limpiarNumero(faltaFacturarRaw)
         : (metaNum - acumNum);
 
-      // Búsqueda flexible en cabeceras de columnas para Visitas
-      const encontrarValorPorClaves = (objeto, claves) => {
-        for (const k of Object.keys(objeto)) {
-          const kNorm = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (claves.some(c => kNorm.includes(c))) {
-            return objeto[k];
-          }
-        }
-        return 0;
-      };
-
-      const visitasTotal = limpiarNumero(
-        canal.Visitas || 
-        canal.visitas || 
-        encontrarValorPorClaves(canal, ['visitas', 'sesiones'])
-      );
-
-      const vPago = limpiarNumero(
-        canal['Visitas Pago'] || 
-        canal['visitas pago'] || 
-        canal.visitasPago || 
-        canal.visitas_pago || 
-        encontrarValorPorClaves(canal, ['pago', 'paid', 'pauta'])
-      );
-
-      const vOrganico = limpiarNumero(
-        canal['Visitas Organico'] || 
-        canal['Visitas Orgánico'] || 
-        canal['visitas organico'] || 
-        canal['visitas orgánico'] || 
-        canal.visitasOrganico || 
-        canal.visitas_organico || 
-        encontrarValorPorClaves(canal, ['organico', 'organic'])
-      );
-
-      const vOtros = limpiarNumero(
-        canal['Visitas Otros'] || 
-        canal['visitas otros'] || 
-        canal.visitasOtros || 
-        canal.visitas_otros || 
-        encontrarValorPorClaves(canal, ['otros', 'directo', 'direct'])
-      );
-
       return {
         ...canal,
         canal: canal.canal || canal.id || '',
@@ -465,10 +460,7 @@ export default function App() {
         requeridodiario: limpiarNumero(canal.requeridodiario),
         litros: limpiarNumero(canal.litros),
         margen: limpiarNumero(canal.margen),
-        Visitas: visitasTotal,
-        visitasPago: vPago,
-        visitasOrganico: vOrganico,
-        visitasOtros: vOtros,
+        Visitas: limpiarNumero(canal.Visitas || canal.visitas),
         Pedidos: limpiarNumero(canal.Pedidos || canal.pedidos),
         "ticket promedio": limpiarNumero(canal["ticket promedio"] || canal["ticket promedic"]),
         faltaFacturar: faltaFacturarFinal,
@@ -524,6 +516,7 @@ export default function App() {
   const mesActual = URLS[mesSeleccionado];
   const datosActuales = datosPorMes[mesSeleccionado] || { canales: [], globales: {} };
   const productosActuales = productosPorMes[mesSeleccionado] || [];
+  const analyticsActuales = datosAnalyticsPorMes[mesSeleccionado] || null;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans antialiased">
@@ -585,6 +578,7 @@ export default function App() {
           esActivo={mesActual.esActivo}
           ultimaActualizacion={ultimaActualizacion}
           datosCliengo={datosCliengoPorMes[mesSeleccionado] || null}
+          datosAnalytics={analyticsActuales}
           datosPorMes={datosPorMes}
           productosSemana={productosActuales}
         />

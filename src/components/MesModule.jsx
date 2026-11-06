@@ -4,6 +4,7 @@ import ResumenEjecutivo from './ResumenEjecutivo';
 import GraficoEvolucionMensual from './GraficoEvolucionMensual';
 import ModalProductos from './ModalProductos';
 import CyberMondayModule from './CyberMondayModule';
+import AnalyticsWebModule from './AnalyticsWebModule';
 
 const limpiarNumero = (valor) => {
   if (!valor && valor !== 0) return 0;
@@ -22,6 +23,7 @@ export default function MesModule({
   esActivo,
   ultimaActualizacion,
   datosCliengo,
+  datosAnalytics,
   datosPorMes = {},
   productosSemana = []
 }) {
@@ -107,6 +109,11 @@ export default function MesModule({
           mes={mes}
           productos={productosSemana}
         />
+      )}
+
+      {/* 🌐 MÓDULO GOOGLE ANALYTICS 4 (En vivo) */}
+      {esActivo && datosAnalytics && (
+        <AnalyticsWebModule datosAnalytics={datosAnalytics} />
       )}
 
       {/* 📈 GRÁFICO DE EVOLUCIÓN MENSUAL */}

@@ -413,6 +413,49 @@ export default function App() {
         ? limpiarNumero(faltaFacturarRaw)
         : (metaNum - acumNum);
 
+      // Búsqueda flexible en cabeceras de columnas para Visitas
+      const encontrarValorPorClaves = (objeto, claves) => {
+        for (const k of Object.keys(objeto)) {
+          const kNorm = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (claves.some(c => kNorm.includes(c))) {
+            return objeto[k];
+          }
+        }
+        return 0;
+      };
+
+      const visitasTotal = limpiarNumero(
+        canal.Visitas || 
+        canal.visitas || 
+        encontrarValorPorClaves(canal, ['visitas', 'sesiones'])
+      );
+
+      const vPago = limpiarNumero(
+        canal['Visitas Pago'] || 
+        canal['visitas pago'] || 
+        canal.visitasPago || 
+        canal.visitas_pago || 
+        encontrarValorPorClaves(canal, ['pago', 'paid', 'pauta'])
+      );
+
+      const vOrganico = limpiarNumero(
+        canal['Visitas Organico'] || 
+        canal['Visitas Orgánico'] || 
+        canal['visitas organico'] || 
+        canal['visitas orgánico'] || 
+        canal.visitasOrganico || 
+        canal.visitas_organico || 
+        encontrarValorPorClaves(canal, ['organico', 'organic'])
+      );
+
+      const vOtros = limpiarNumero(
+        canal['Visitas Otros'] || 
+        canal['visitas otros'] || 
+        canal.visitasOtros || 
+        canal.visitas_otros || 
+        encontrarValorPorClaves(canal, ['otros', 'directo', 'direct'])
+      );
+
       return {
         ...canal,
         canal: canal.canal || canal.id || '',
@@ -422,7 +465,10 @@ export default function App() {
         requeridodiario: limpiarNumero(canal.requeridodiario),
         litros: limpiarNumero(canal.litros),
         margen: limpiarNumero(canal.margen),
-        Visitas: limpiarNumero(canal.Visitas || canal.visitas),
+        Visitas: visitasTotal,
+        visitasPago: vPago,
+        visitasOrganico: vOrganico,
+        visitasOtros: vOtros,
         Pedidos: limpiarNumero(canal.Pedidos || canal.pedidos),
         "ticket promedio": limpiarNumero(canal["ticket promedio"] || canal["ticket promedic"]),
         faltaFacturar: faltaFacturarFinal,

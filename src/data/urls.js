@@ -1,6 +1,6 @@
 // src/data/urls.js
 export const URLS = {
-// 🔥 Mes en curso (Noviembre 2026 - 30 días)
+  // 🔥 Mes en curso (Noviembre 2026 - 30 días)
   noviembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=304409415&single=true&output=csv",
     label: "Noviembre 2026",
@@ -21,6 +21,13 @@ export const URLS = {
   analytics_noviembre: {
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=1464605514&single=true&output=csv",
     label: "Analytics GA4 Noviembre",
+    esActivo: true
+  },
+
+  // ✉️ DATOS EMAIL MARKETING ICOMM NOVIEMBRE
+  icomm_noviembre: {
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsWab9k64Wx8d8ptY_UPXRfYHgGMLCsfsuXiw64lXzML0B8D6e_QV4MI0uv73B-2pdEBowq80mib2W/pub?gid=121677756&single=true&output=csv",
+    label: "Email Marketing icomm Noviembre",
     esActivo: true
   },
   

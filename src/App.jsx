@@ -12,6 +12,7 @@ export default function App() {
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
   const [datosCliengoPorMes, setDatosCliengoPorMes] = useState({});
   const [datosAnalyticsPorMes, setDatosAnalyticsPorMes] = useState({});
+  const [datosIcommPorMes, setDatosIcommPorMes] = useState({});
   const [productosPorMes, setProductosPorMes] = useState({});
 
   const limpiarNumero = (valor) => {
@@ -102,6 +103,10 @@ export default function App() {
     const origenTraficoAds = [];
     const franjasHorarias = [];
 
+    let presupuestado = 0;
+    let sucursalDinero = 0;
+    let telefonicaDinero = 0;
+
     const idxFilaCabecera = lineas.findIndex(l => l.toUpperCase().includes('TOTAL CONVERSACIONES'));
     if (idxFilaCabecera !== -1 && lineas[idxFilaCabecera + 1]) {
       const filaValores = lineas[idxFilaCabecera + 1].split(',').map(v => v.trim());
@@ -148,6 +153,20 @@ export default function App() {
       }
       cols.push(actual.trim().replace(/^"|"$/g, ''));
 
+      const textoFila = cols.join(' ').toLowerCase();
+      if (textoFila.includes('cotizado') || textoFila.includes('presupuestado') || textoFila.includes('cartera') || textoFila.includes('pipeline')) {
+        const num = cols.map(v => limpiarNumero(v)).find(v => v > 0);
+        if (num && presupuestado === 0) presupuestado = num;
+      }
+      if (textoFila.includes('derivado a sucursal') || (textoFila.includes('sucursal') && textoFila.includes('$')) || textoFila.includes('mostrador')) {
+        const num = cols.map(v => limpiarNumero(v)).find(v => v > 0);
+        if (num && sucursalDinero === 0) sucursalDinero = num;
+      }
+      if ((textoFila.includes('venta telefónica') || textoFila.includes('telefonica')) && textoFila.includes('$')) {
+        const num = cols.map(v => limpiarNumero(v)).find(v => v > 0);
+        if (num && telefonicaDinero === 0) telefonicaDinero = num;
+      }
+
       const primerCol = cols[1] || cols[0] || '';
       const nombreEtapa = etapasPosibles.find(e => e.toLowerCase() === primerCol.toLowerCase());
       
@@ -192,7 +211,11 @@ export default function App() {
 
           const ventas = celdasDerecha[2] !== undefined ? limpiarNumero(celdasDerecha[2]) : 0;
           const tasaConv = celdasDerecha[3] ? celdasDerecha[3].trim() : '0,00%';
-          const canalPreferido = celdasDerecha[4] ? celdasDerecha[4].trim() : 'Sin ventas';
+          
+          let canalPreferido = celdasDerecha[4] ? celdasDerecha[4].trim() : 'Sin ventas';
+          if (canalPreferido.includes('#') || !canalPreferido) {
+            canalPreferido = 'Sin ventas';
+          }
 
           if (!origenTraficoAds.some(item => item.tipo.toLowerCase() === match.label.toLowerCase())) {
             origenTraficoAds.push({
@@ -232,6 +255,8 @@ export default function App() {
       }
     });
 
+    const totalDerivado = sucursalDinero + telefonicaDinero;
+
     return {
       totalConversaciones,
       totalLeads,
@@ -242,11 +267,16 @@ export default function App() {
       resumenEtapas,
       desempenoAsesores,
       origenConversaciones: origenTraficoAds,
-      franjasHorarias
+      franjasHorarias,
+      dineroCliengo: {
+        presupuestado,
+        sucursal: sucursalDinero,
+        telefonica: telefonicaDinero,
+        totalDerivado
+      }
     };
   };
 
-  // 🚀 PARSER DE LA PESTAÑA Analytics_Noviembre
   const procesarAnalyticsDesdeCSV = (csvText) => {
     if (!csvText) return { canales: [], paginas: [] };
     const lineas = csvText.split('\n').map(l => l.replace(/\r/g, '').trim()).filter(Boolean);
@@ -257,14 +287,12 @@ export default function App() {
 
     lineas.slice(1).forEach(linea => {
       const cols = linea.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      // Columnas A y B: Canal, Sesiones
       if (cols[0] && cols[1] && !isNaN(Number(cols[1])) && Number(cols[1]) > 0) {
         canales.push({
           canal: cols[0],
           sesiones: Number(cols[1])
         });
       }
-      // Columnas D y E: URL_Pagina, Vistas (índices 3 y 4)
       if (cols[3] && cols[4] && !isNaN(Number(cols[4])) && Number(cols[4]) > 0) {
         paginas.push({
           url: cols[3],
@@ -276,19 +304,123 @@ export default function App() {
     return { canales, paginas };
   };
 
+  const procesarIcommDesdeCSV = (csvText) => {
+    if (!csvText) return null;
+    const lineas = csvText.split('\n').map(l => l.replace(/\r/g, '').trim()).filter(Boolean);
+    if (lineas.length < 2) return null;
+
+    const parsearLineaCSV = (linea) => {
+      const cols = [];
+      let actual = '';
+      let enComillas = false;
+      for (let i = 0; i < linea.length; i++) {
+        const char = linea[i];
+        if (char === '"') {
+          enComillas = !enComillas;
+        } else if (char === ',' && !enComillas) {
+          cols.push(actual.trim().replace(/^"|"$/g, ''));
+          actual = '';
+        } else {
+          actual += char;
+        }
+      }
+      cols.push(actual.trim().replace(/^"|"$/g, ''));
+      return cols;
+    };
+
+    const cabeceras = parsearLineaCSV(lineas[0]).map(c => c.toLowerCase());
+    const idxStart = cabeceras.indexOf('start');
+    const idxConfig = cabeceras.indexOf('configuration');
+    const idxSubject = cabeceras.indexOf('subject');
+    const idxSent = cabeceras.indexOf('sent');
+    const idxBounces = cabeceras.indexOf('bounces');
+    const idxEfectives = cabeceras.indexOf('efectives');
+    const idxUView = cabeceras.indexOf('u. view');
+    const idxUClicks = cabeceras.indexOf('u. clicks');
+    const idxAdq = cabeceras.indexOf('adquisitions');
+    const idxRev = cabeceras.indexOf('revenue');
+
+    const campanas = [];
+    let sent = 0, bounces = 0, efectives = 0, uViews = 0, uClicks = 0, adquisitions = 0, revenue = 0;
+
+    lineas.slice(1).forEach(linea => {
+      const cols = parsearLineaCSV(linea);
+      const s = limpiarNumero(cols[idxSent]);
+      if (s === 0) return;
+
+      const b = limpiarNumero(cols[idxBounces]);
+      const ef = limpiarNumero(cols[idxEfectives]);
+      const uv = limpiarNumero(cols[idxUView]);
+      const uc = limpiarNumero(cols[idxUClicks]);
+      const adq = limpiarNumero(cols[idxAdq]);
+      const rev = limpiarNumero(cols[idxRev]);
+
+      sent += s;
+      bounces += b;
+      efectives += ef;
+      uViews += uv;
+      uClicks += uc;
+      adquisitions += adq;
+      revenue += rev;
+
+      const fechaRaw = cols[idxStart] || '';
+      campanas.push({
+        fecha: fechaRaw,
+        fechaCorta: fechaRaw.split(' ')[0] || fechaRaw,
+        configuration: cols[idxConfig] || 'Sin nombre',
+        subject: cols[idxSubject] || '',
+        sent: s,
+        efectives: ef,
+        uViews: uv,
+        uClicks: uc,
+        adquisitions: adq,
+        revenue: rev,
+        openRate: ef > 0 ? (uv / ef) * 100 : 0,
+        ctr: ef > 0 ? (uc / ef) * 100 : 0,
+      });
+    });
+
+    return {
+      campanas,
+      totales: {
+        sent,
+        bounces,
+        efectives,
+        uViews,
+        uClicks,
+        adquisitions,
+        revenue,
+        tasaEntrega: sent > 0 ? (efectives / sent) * 100 : 0,
+        tasaRebote: sent > 0 ? (bounces / sent) * 100 : 0,
+        openRate: efectives > 0 ? (uViews / efectives) * 100 : 0,
+        ctr: efectives > 0 ? (uClicks / efectives) * 100 : 0,
+        ctor: uViews > 0 ? (uClicks / uViews) * 100 : 0,
+      }
+    };
+  };
+
   const cargarTodosLosMeses = () => {
     setSincronizando(true);
     
     const funnels = MESES_DISPONIBLES.map(m => `funnel_${m}`).filter(f => URLS[f]);
     const rankings = MESES_DISPONIBLES.map(m => `ranking_${m}`).filter(r => URLS[r]);
     const analyticsKeys = MESES_DISPONIBLES.map(m => `analytics_${m}`).filter(a => URLS[a]);
-    const mesesACargar = [...MESES_DISPONIBLES, ...funnels, ...rankings, ...analyticsKeys];
+    const icommKeys = MESES_DISPONIBLES.map(m => `icomm_${m}`).filter(i => URLS[i]);
+    const mesesACargar = [...MESES_DISPONIBLES, ...funnels, ...rankings, ...analyticsKeys, ...icommKeys];
     
     const promesas = mesesACargar.map(clave => {
-      const url = URLS[clave]?.url;
-      if (!url) return Promise.resolve({ clave, error: new Error(`URL no encontrada para ${clave}`) });
+      const urlBase = URLS[clave]?.url;
+      if (!urlBase) return Promise.resolve({ clave, error: new Error(`URL no encontrada para ${clave}`) });
       
-      return fetch(url)
+      const urlConBuster = `${urlBase}&_t=${new Date().getTime()}`;
+
+      return fetch(urlConBuster, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        }
+      })
         .then(res => {
           if (!res.ok) throw new Error(`Error cargando ${clave}`);
           return res.text();
@@ -303,6 +435,7 @@ export default function App() {
         const nuevosCliengo = {};
         const nuevosProductos = {};
         const nuevosAnalytics = {};
+        const nuevosIcomm = {};
         let huboError = false;
 
         resultados.forEach(({ clave, csv, error }) => {
@@ -329,6 +462,12 @@ export default function App() {
             nuevosAnalytics[nombreMes] = procesarAnalyticsDesdeCSV(csv);
             return;
           }
+
+          if (clave.startsWith('icomm_')) {
+            const nombreMes = clave.replace('icomm_', '');
+            nuevosIcomm[nombreMes] = procesarIcommDesdeCSV(csv);
+            return;
+          }
           
           const diasDelMes = URLS[clave]?.dias || 30;
           nuevosDatos[clave] = procesarMes(csv, diasDelMes);
@@ -336,6 +475,7 @@ export default function App() {
 
         setDatosCliengoPorMes(nuevosCliengo);
         setDatosAnalyticsPorMes(nuevosAnalytics);
+        setDatosIcommPorMes(nuevosIcomm);
         setDatosPorMes(nuevosDatos);
         setProductosPorMes(nuevosProductos);
 
@@ -517,6 +657,7 @@ export default function App() {
   const datosActuales = datosPorMes[mesSeleccionado] || { canales: [], globales: {} };
   const productosActuales = productosPorMes[mesSeleccionado] || [];
   const analyticsActuales = datosAnalyticsPorMes[mesSeleccionado] || null;
+  const icommActuales = datosIcommPorMes[mesSeleccionado] || null;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 p-4 sm:p-8 font-sans antialiased">
@@ -579,6 +720,7 @@ export default function App() {
           ultimaActualizacion={ultimaActualizacion}
           datosCliengo={datosCliengoPorMes[mesSeleccionado] || null}
           datosAnalytics={analyticsActuales}
+          datosIcomm={icommActuales}
           datosPorMes={datosPorMes}
           productosSemana={productosActuales}
         />

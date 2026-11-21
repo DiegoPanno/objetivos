@@ -5,6 +5,7 @@ import GraficoEvolucionMensual from './GraficoEvolucionMensual';
 import ModalProductos from './ModalProductos';
 import CyberMondayModule from './CyberMondayModule';
 import AnalyticsWebModule from './AnalyticsWebModule';
+import IcommEmailModule from './IcommEmailModule';
 
 const limpiarNumero = (valor) => {
   if (!valor && valor !== 0) return 0;
@@ -24,6 +25,7 @@ export default function MesModule({
   ultimaActualizacion,
   datosCliengo,
   datosAnalytics,
+  datosIcomm,
   datosPorMes = {},
   productosSemana = []
 }) {
@@ -114,6 +116,11 @@ export default function MesModule({
       {/* 🌐 MÓDULO GOOGLE ANALYTICS 4 (En vivo) */}
       {esActivo && datosAnalytics && (
         <AnalyticsWebModule datosAnalytics={datosAnalytics} />
+      )}
+
+      {/* ✉️ MÓDULO EMAIL MARKETING ICOMM (En vivo) */}
+      {esActivo && datosIcomm && (
+        <IcommEmailModule datosIcomm={datosIcomm} />
       )}
 
       {/* 📈 GRÁFICO DE EVOLUCIÓN MENSUAL */}

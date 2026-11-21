@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 
 export default function IcommEmailModule({ datosIcomm }) {
   const [ordenPor, setOrdenPor] = useState('fecha');
+  const [mostrarRecomendacion, setMostrarRecomendacion] = useState(false);
 
   if (!datosIcomm || !datosIcomm.campanas || datosIcomm.campanas.length === 0) {
     return null;
@@ -16,10 +17,14 @@ export default function IcommEmailModule({ datosIcomm }) {
     return 0;
   });
 
+  // Detección dinámica de oportunidades según los números reales del mes
+  const alertaRebote = totales.tasaRebote > 10;
+  const alertaClics = totales.ctr < 1.0 || totales.ctor < 5.0;
+
   return (
     <section className="bg-slate-900 border border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-5">
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xl">✉️</span>
@@ -32,33 +37,138 @@ export default function IcommEmailModule({ datosIcomm }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+        <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto justify-between xl:justify-end">
+          {/* BOTÓN LLAMATIVO DE DIAGNÓSTICO Y RECOMENDACIONES */}
           <button
-            onClick={() => setOrdenPor('fecha')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-              ordenPor === 'fecha' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+            onClick={() => setMostrarRecomendacion(!mostrarRecomendacion)}
+            className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black tracking-wide transition-all cursor-pointer border ${
+              mostrarRecomendacion
+                ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.45)]'
+                : 'bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
             }`}
           >
-            🕒 Recientes
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+            </span>
+            <span>💡 Sugerencia </span>
+            <span className="text-[10px] ml-0.5">{mostrarRecomendacion ? '▲' : '▼'}</span>
           </button>
-          <button
-            onClick={() => setOrdenPor('revenue')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-              ordenPor === 'revenue' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            💰 Mayor Venta
-          </button>
-          <button
-            onClick={() => setOrdenPor('openRate')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-              ordenPor === 'openRate' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            👁️ Mejor Apertura
-          </button>
+
+          {/* FILTROS DE ORDEN */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setOrdenPor('fecha')}
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                ordenPor === 'fecha' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              🕒 Recientes
+            </button>
+            <button
+              onClick={() => setOrdenPor('revenue')}
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                ordenPor === 'revenue' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              💰 Mayor Venta
+            </button>
+            <button
+              onClick={() => setOrdenPor('openRate')}
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                ordenPor === 'openRate' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              👁️ Apertura
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* PANEL DESPLEGABLE DE RECOMENDACIÓN ESTRATÉGICA */}
+      {mostrarRecomendacion && (
+        <div className="bg-gradient-to-br from-amber-500/10 via-slate-950 to-indigo-950/30 border border-amber-500/40 rounded-2xl p-4 sm:p-5 space-y-4 shadow-inner">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-amber-500/20 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🎯</span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-300">
+                  Plan de Acción para Optimizar Conversión en Email
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Análisis automático sobre {totales.efectives.toLocaleString('es-AR')} envíos efectivos del período
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMostrarRecomendacion(false)}
+              className="text-[11px] font-bold text-slate-400 hover:text-white bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 cursor-pointer"
+            >
+              ✕ Ocultar
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 text-xs">
+            {/* INSIGHT 1: CTR / CTOR */}
+            <div className="bg-slate-950/80 border border-slate-800/90 p-3.5 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-indigo-300 uppercase text-[11px]">
+                  1. Subir CTR ({totales.ctr.toFixed(2)}%) y CTOR ({totales.ctor.toFixed(2)}%)
+                </span>
+                {alertaClics && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
+                    Oportunidad
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                En pinturería la compra es planificada: los asuntos genéricos (<em>"50% OFF y 12 cuotas"</em>) logran buena apertura (+21%), pero pocos clics internos (~2,2%).
+              </p>
+              <p className="text-emerald-300 font-semibold pt-1">
+                ✓ Acción: Incluir bloques con productos gancho concretos (Látex 20L, Membrana, Cetol 4L) con botón directo a ficha.
+              </p>
+            </div>
+
+            {/* INSIGHT 2: REBOTES */}
+            <div className="bg-slate-950/80 border border-slate-800/90 p-3.5 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-amber-300 uppercase text-[11px]">
+                  2. Limpiar Rebotes ({totales.tasaRebote.toFixed(1)}%)
+                </span>
+                {alertaRebote && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">
+                    Crítico
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Los envíos masivos (+25k contactos) disparan el rebote al ~28%, afectando la reputación del dominio frente a Gmail/Hotmail.
+              </p>
+              <p className="text-emerald-300 font-semibold pt-1">
+                ✓ Acción: Excluir <em>Hard Bounces</em> históricos antes de las campañas de Navidad/Fiestas para subir entregabilidad al +94%.
+              </p>
+            </div>
+
+            {/* INSIGHT 3: REFUERZO A APERTURADORES */}
+            <div className="bg-slate-950/80 border border-slate-800/90 p-3.5 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-cyan-300 uppercase text-[11px]">
+                  3. Refuerzo a Aperturadores
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">
+                  Efectivo
+                </span>
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Los envíos segmentados a aperturadores alcanzan un <strong>CTOR de hasta 5,53%</strong> y duplican el rendimiento de clic frente a la base fría.
+              </p>
+              <p className="text-emerald-300 font-semibold pt-1">
+                ✓ Acción: Disparar reenvío a las 48 hs a <code>AperturadoresSinCompra</code> cambiando el gancho (cuotas sin interés o envío express).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPIs PRINCIPALES */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
